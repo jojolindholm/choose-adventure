@@ -1,5 +1,3 @@
-
-
 from choose_adventure.llm.prompts import (
     SYSTEM_PROMPT,
     first_page_user_prompt,
@@ -69,7 +67,7 @@ def test_next_page_user_prompt_history_rendering():
         premise="Test", tone="", character_json=None, history=history, choice="Go"
     )
     assert '[Page "P1"] Body 1.' in result
-    assert "-> the player chose: \"Choice A\"" in result
+    assert '-> the player chose: "Choice A"' in result
 
 
 def test_next_page_user_prompt_last_entry_no_arrow():
@@ -89,11 +87,15 @@ def test_next_page_user_prompt_collapse_old_entries():
     """Entries older than full_context_pages are collapsed."""
     # 12 entries, full_context_pages=10 → entry at index 1 (the second oldest) should be collapsed
     history: list[dict[str, str | None]] = [
-        {"title": f"P{i}", "body": f"Body {i}.", "chosen_label": f"Choice {i}"}
-        for i in range(12)
+        {"title": f"P{i}", "body": f"Body {i}.", "chosen_label": f"Choice {i}"} for i in range(12)
     ]
     result = next_page_user_prompt(
-        premise="Test", tone="", character_json=None, history=history, choice="Go", full_context_pages=10
+        premise="Test",
+        tone="",
+        character_json=None,
+        history=history,
+        choice="Go",
+        full_context_pages=10,
     )
     # Entry 2 (index 1) should be collapsed: "(Earlier: page \"P1\" - the player chose \"Choice 1\")"
     assert '(Earlier: page "P1"' in result

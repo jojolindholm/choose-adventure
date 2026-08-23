@@ -5,13 +5,11 @@ from choose_adventure.story.models import (
     CharacterState,
     GeneratedOption,
     GeneratedPage,
-    GenerationContext,
-    HistoryEntry,
     merge_character,
 )
 
-
 # --- GeneratedPage validation ---
+
 
 def test_ending_page_requires_no_options():
     """Ending page with 2 options must raise ValidationError."""
@@ -81,6 +79,7 @@ def test_valid_ending_page():
 
 # --- GeneratedOption validation ---
 
+
 def test_empty_label_raises():
     """Empty label must raise ValidationError."""
     with pytest.raises(ValidationError):
@@ -100,6 +99,7 @@ def test_label_is_stripped():
 
 
 # --- merge_character ---
+
 
 def test_merge_none_prev_returns_new():
     """prev is None → return new as-is."""

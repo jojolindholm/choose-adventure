@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import json
 from typing import Any
 
 from pydantic import BaseModel, Field, model_validator
@@ -36,7 +35,7 @@ class GeneratedPage(BaseModel):
     character: CharacterState
 
     @model_validator(mode="after")
-    def validate_options(self) -> "GeneratedPage":
+    def validate_options(self) -> GeneratedPage:
         if self.is_ending:
             if len(self.options) != 0:
                 raise ValueError("Ending pages must have no options (empty list)")
@@ -87,9 +86,7 @@ class GenerationContext(BaseModel):
     choice: str | None = None
 
 
-def merge_character(
-    prev: CharacterState | None, new: CharacterState
-) -> CharacterState:
+def merge_character(prev: CharacterState | None, new: CharacterState) -> CharacterState:
     """Merge character state from two pages.
 
     - If prev is None, return new as-is.

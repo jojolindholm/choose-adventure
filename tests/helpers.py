@@ -1,9 +1,7 @@
-
-
 from pathlib import Path
 from typing import Any
 
-from choose_adventure.storage.repo import StoryRepository, StorySummary
+from choose_adventure.storage.repo import StoryRepository
 from choose_adventure.story.models import CharacterState, GeneratedOption, GeneratedPage
 
 
@@ -30,7 +28,7 @@ def seed_story(
     prev_page_id = None
     for i, (title, body, labels, character, is_ending) in enumerate(pages, 1):
         page = repo.create_page(story["id"], i, title, body, is_ending, prev_page_id)
-        opts = repo.create_options(page["id"], labels)
+        repo.create_options(page["id"], labels)
 
         if i > 1 and prev_page_id is not None:
             # Link the option from previous page to this one (first option)

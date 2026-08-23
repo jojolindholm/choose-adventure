@@ -1,5 +1,3 @@
-
-
 from __future__ import annotations
 
 from typing import Protocol
@@ -7,8 +5,8 @@ from typing import Protocol
 from choose_adventure.storage.repo import StoryRepository
 from choose_adventure.story.errors import StoryEndedError
 from choose_adventure.story.models import (
-    GenerationContext,
     GeneratedPage,
+    GenerationContext,
     HistoryEntry,
     merge_character,
 )
@@ -23,7 +21,9 @@ class PageGenerator(Protocol):
 class StoryEngine:
     """Orchestrates story generation with lazy option links and exact replay."""
 
-    def __init__(self, repo: StoryRepository, generator: PageGenerator, full_context_pages: int = 10):
+    def __init__(
+        self, repo: StoryRepository, generator: PageGenerator, full_context_pages: int = 10
+    ):
         self._repo = repo
         self._generator = generator
         self._full_context_pages = full_context_pages
@@ -38,7 +38,9 @@ class StoryEngine:
         gen = await self._generator.next_page(ctx)
 
         story = self._repo.create_story(premise, tone)
-        page = self._repo.create_page(story["id"], 1, gen.page_title, gen.page_text, gen.is_ending, None)
+        page = self._repo.create_page(
+            story["id"], 1, gen.page_title, gen.page_text, gen.is_ending, None
+        )
         self._repo.create_options(page["id"], [o.label for o in gen.options])
         self._repo.save_character(page["id"], gen.character)
         self._repo.set_last_page(story["id"], page["id"])
@@ -63,7 +65,10 @@ class StoryEngine:
 
         # Build history context by walking path to current page
         steps = self._repo.path_to_page(story_id, page["id"])
-        history = [HistoryEntry(title=s.page_title, body=s.page_body, chosen_label=s.chosen_label) for s in steps]
+        history = [
+            HistoryEntry(title=s.page_title, body=s.page_body, chosen_label=s.chosen_label)
+            for s in steps
+        ]
 
         # Get story info and current character
         story = self._repo.get_story(story_id)

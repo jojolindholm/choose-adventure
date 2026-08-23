@@ -1,8 +1,6 @@
-
-
 import asyncio
 
-from choose_adventure.story.models import GenerationContext, GeneratedPage
+from choose_adventure.story.models import GeneratedPage, GenerationContext
 
 
 class FakeGenerator:

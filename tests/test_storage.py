@@ -1,12 +1,10 @@
-
-import json
+import sqlite3
 from pathlib import Path
 
 import pytest
-import sqlite3
 
-from choose_adventure.story.models import CharacterState, GeneratedOption, GeneratedPage
 from choose_adventure.storage.repo import StoryRepository
+from choose_adventure.story.models import CharacterState, GeneratedOption, GeneratedPage
 
 
 @pytest.fixture
@@ -85,6 +83,16 @@ def test_list_stories_empty(repo: StoryRepository):
     assert repo.list_stories() == []
 
 
+def test_first_page_id(repo: StoryRepository):
+    """first_page_id returns the seq=1 page id for a story (None when no pages)."""
+    story = repo.create_story("Test", "")
+    assert repo.first_page_id(story["id"]) is None
+
+    page = repo.create_page(story["id"], 1, "P1", "Body.", False, None)
+    repo.create_page(story["id"], 2, "P2", "Body.", False, page["id"])
+    assert repo.first_page_id(story["id"]) == page["id"]
+
+
 def test_list_stories_shows_page1_title(repo: StoryRepository):
     """list_stories shows page-1 title."""
     story = repo.create_story("Test", "")
@@ -124,10 +132,12 @@ def test_save_generated_page_transaction_rollback(repo: StoryRepository):
         page_text="Body.",
         is_ending=False,
         options=[GeneratedOption(label="Continue"), GeneratedOption(label="Stop")],
-        character=CharacterState.model_construct(name=None, role="", location="", condition="", traits=[], inventory=[]),
+        character=CharacterState.model_construct(
+            name=None, role="", location="", condition="", traits=[], inventory=[]
+        ),
     )
 
-    with pytest.raises(Exception):  # NOT NULL constraint violation
+    with pytest.raises(sqlite3.IntegrityError):  # NOT NULL constraint violation
         repo.save_generated_page(story["id"], page["id"], gen, gen.character, opts[0]["id"])
 
     # max_seq should be unchanged

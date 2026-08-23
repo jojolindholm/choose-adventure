@@ -4,7 +4,7 @@ import pytest
 
 from choose_adventure.llm.errors import LLMOutputError, LLMTransportError
 from choose_adventure.llm.storygen import StoryGenerator
-from choose_adventure.story.models import GenerationContext, GeneratedPage
+from choose_adventure.story.models import GeneratedPage, GenerationContext
 
 
 class FakeChat:

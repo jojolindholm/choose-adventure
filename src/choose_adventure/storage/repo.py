@@ -1,15 +1,11 @@
-
 import json
+import sqlite3
 from contextlib import closing
 from pathlib import Path
-
-import sqlite3
 
 from choose_adventure.story.models import (
     CharacterState,
     GeneratedPage,
-    HistoryEntry,
-    merge_character,
 )
 
 from .db import connect, ensure_schema
@@ -18,7 +14,9 @@ from .db import connect, ensure_schema
 class StorySummary:
     """Lightweight summary for listing stories."""
 
-    def __init__(self, id: int, title: str, premise: str, created_at: str, last_page_id: int | None):
+    def __init__(
+        self, id: int, title: str, premise: str, created_at: str, last_page_id: int | None
+    ):
         self.id = id
         self.title = title
         self.premise = premise
@@ -54,7 +52,7 @@ class StoryRepository:
         import datetime
 
         with closing(self._open()) as conn:
-            now = datetime.datetime.now(datetime.timezone.utc).isoformat()
+            now = datetime.datetime.now(datetime.UTC).isoformat()
             cursor = conn.execute(
                 "INSERT INTO stories (premise, tone, created_at) VALUES (?, ?, ?)",
                 (premise, tone, now),
@@ -69,7 +67,15 @@ class StoryRepository:
                 "last_page_id": None,
             }
 
-    def create_page(self, story_id: int, seq: int, title: str, body: str, is_ending: bool, parent_page_id: int | None) -> dict:
+    def create_page(
+        self,
+        story_id: int,
+        seq: int,
+        title: str,
+        body: str,
+        is_ending: bool,
+        parent_page_id: int | None,
+    ) -> dict:
         """Create a page and return it as a dict."""
         with closing(self._open()) as conn:
             cursor = conn.execute(
@@ -97,13 +103,15 @@ class StoryRepository:
                     "INSERT INTO options (page_id, seq, label) VALUES (?, ?, ?)",
                     (page_id, seq, label),
                 )
-                options.append({
-                    "id": cursor.lastrowid,
-                    "page_id": page_id,
-                    "seq": seq,
-                    "label": label,
-                    "target_page_id": None,
-                })
+                options.append(
+                    {
+                        "id": cursor.lastrowid,
+                        "page_id": page_id,
+                        "seq": seq,
+                        "label": label,
+                        "target_page_id": None,
+                    }
+                )
             conn.commit()
             return options
 
@@ -139,7 +147,9 @@ class StoryRepository:
     def get_options(self, page_id: int) -> list[dict]:
         """Get options for a page, ordered by seq."""
         with closing(self._open()) as conn:
-            cursor = conn.execute("SELECT * FROM options WHERE page_id = ? ORDER BY seq", (page_id,))
+            cursor = conn.execute(
+                "SELECT * FROM options WHERE page_id = ? ORDER BY seq", (page_id,)
+            )
             return [dict(row) for row in cursor.fetchall()]
 
     def get_character(self, page_id: int) -> CharacterState | None:
@@ -189,6 +199,15 @@ class StoryRepository:
             row = cursor.fetchone()
             return row[0] if row and row[0] is not None else 0
 
+    def first_page_id(self, story_id: int) -> int | None:
+        """Get the page id of seq=1 for a story (None if no pages)."""
+        with closing(self._open()) as conn:
+            cursor = conn.execute(
+                "SELECT id FROM pages WHERE story_id = ? AND seq = 1", (story_id,)
+            )
+            row = cursor.fetchone()
+            return row[0] if row else None
+
     def latest_story(self) -> dict | None:
         """Get the most recently created story."""
         with closing(self._open()) as conn:
@@ -210,13 +229,15 @@ class StoryRepository:
             results = []
             for row in cursor.fetchall():
                 data = dict(row)
-                results.append(StorySummary(
-                    id=data["id"],
-                    title=data["story_title"] or "",
-                    premise=data["premise"],
-                    created_at=data["created_at"],
-                    last_page_id=data["last_page_id"],
-                ))
+                results.append(
+                    StorySummary(
+                        id=data["id"],
+                        title=data["story_title"] or "",
+                        premise=data["premise"],
+                        created_at=data["created_at"],
+                        last_page_id=data["last_page_id"],
+                    )
+                )
             return results
 
     def path_to_page(self, story_id: int, page_id: int) -> list[PathStep]:
@@ -244,11 +265,13 @@ class StoryRepository:
                     if opt_row:
                         chosen_label = dict(opt_row)["label"]
 
-                steps.append(PathStep(
-                    page_title=page_data["title"],
-                    page_body=page_data["body"],
-                    chosen_label=chosen_label,
-                ))
+                steps.append(
+                    PathStep(
+                        page_title=page_data["title"],
+                        page_body=page_data["body"],
+                        chosen_label=chosen_label,
+                    )
+                )
 
                 current_id = page_data["parent_page_id"]
 
@@ -281,7 +304,14 @@ class StoryRepository:
 
                 cursor = conn.execute(
                     "INSERT INTO pages (story_id, seq, title, body, is_ending, parent_page_id) VALUES (?, ?, ?, ?, ?, ?)",
-                    (story_id, seq, generated.page_title, generated.page_text, 1 if generated.is_ending else 0, parent_page_id),
+                    (
+                        story_id,
+                        seq,
+                        generated.page_title,
+                        generated.page_text,
+                        1 if generated.is_ending else 0,
+                        parent_page_id,
+                    ),
                 )
                 new_page_id = cursor.lastrowid
 

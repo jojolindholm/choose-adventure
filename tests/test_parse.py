@@ -1,8 +1,7 @@
-
-
 import pytest
-from choose_adventure.llm.parse import extract_json, parse_generated_page, correction_message
+
 from choose_adventure.llm.errors import LLMOutputError
+from choose_adventure.llm.parse import correction_message, extract_json, parse_generated_page
 
 
 def test_raw_valid_json_parses():

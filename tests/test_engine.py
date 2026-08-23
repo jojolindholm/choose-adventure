@@ -1,11 +1,9 @@
-
-
 import asyncio
 
 import pytest
 
 from choose_adventure.storage.repo import StoryRepository
-from choose_adventure.story.engine import PageGenerator, StoryEngine
+from choose_adventure.story.engine import StoryEngine
 from choose_adventure.story.errors import StoryEndedError
 from choose_adventure.story.models import (
     CharacterState,
@@ -103,7 +101,7 @@ def test_choose_branch_sibling(repo, faker):
     page1 = asyncio.run(engine.start_story("A quest.", "epic"))
 
     opts = repo.get_options(page1["id"])
-    page2 = asyncio.run(engine.choose(repo.get_story(page1["story_id"])["id"], page1, opts[0]))
+    asyncio.run(engine.choose(repo.get_story(page1["story_id"])["id"], page1, opts[0]))
     page3 = asyncio.run(engine.choose(repo.get_story(page1["story_id"])["id"], page1, opts[1]))
 
     assert page3["parent_page_id"] == page1["id"]
@@ -184,22 +182,26 @@ def test_history_has_12_entries_for_deep_path(repo):
     for i in range(12):
         if i == 11:
             # Ending page — no options
-            pages.append(GeneratedPage(
-                page_title=f"Page {i+1}",
-                page_text=f"You are on page {i+1}.",
-                is_ending=True,
-                options=[],
-                character=CharacterState(name="Hero"),
-            ))
+            pages.append(
+                GeneratedPage(
+                    page_title=f"Page {i + 1}",
+                    page_text=f"You are on page {i + 1}.",
+                    is_ending=True,
+                    options=[],
+                    character=CharacterState(name="Hero"),
+                )
+            )
         else:
             # Non-ending pages need 2-4 options
-            pages.append(GeneratedPage(
-                page_title=f"Page {i+1}",
-                page_text=f"You are on page {i+1}.",
-                is_ending=False,
-                options=[GeneratedOption(label="Continue"), GeneratedOption(label="Stop")],
-                character=CharacterState(name="Hero"),
-            ))
+            pages.append(
+                GeneratedPage(
+                    page_title=f"Page {i + 1}",
+                    page_text=f"You are on page {i + 1}.",
+                    is_ending=False,
+                    options=[GeneratedOption(label="Continue"), GeneratedOption(label="Stop")],
+                    character=CharacterState(name="Hero"),
+                )
+            )
 
     faker = FakeGenerator(pages)
     engine = StoryEngine(repo, faker)

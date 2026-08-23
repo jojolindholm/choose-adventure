@@ -1,5 +1,3 @@
-
-
 SYSTEM_PROMPT = (
     "You are the Game Master of a text adventure. You write vivid, atmospheric second-person prose.\n"
     "Reply with a single valid JSON object and NOTHING else - no markdown fences, no commentary, no trailing text.\n"
@@ -64,15 +62,15 @@ def next_page_user_prompt(
 
         # Older entries beyond full_context_pages are collapsed
         if i < len(history) - full_context_pages and i < len(history) - 1:
-            lines.append(f"{i + 1}. (Earlier: page \"{title}\" - the player chose \"{chosen_label}\")")
+            lines.append(f'{i + 1}. (Earlier: page "{title}" - the player chose "{chosen_label}")')
         elif i == len(history) - 1:
             # Last entry (current page): no -> line
-            lines.append(f"{i + 1}. [Page \"{title}\"] {body}")
+            lines.append(f'{i + 1}. [Page "{title}"] {body}')
         else:
             # Middle entries: show -> chosen line
-            lines.append(f"{i + 1}. [Page \"{title}\"] {body}")
+            lines.append(f'{i + 1}. [Page "{title}"] {body}')
             if chosen_label:
-                lines.append(f"   -> the player chose: \"{chosen_label}\"")
+                lines.append(f'   -> the player chose: "{chosen_label}"')
 
     history_block = "\n".join(lines)
 

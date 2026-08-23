@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-import json
-
-from choose_adventure.story.models import GenerationContext, GeneratedPage
+from choose_adventure.story.models import GeneratedPage, GenerationContext
 
 from .client import LLMClient
 from .errors import LLMOutputError, LLMTransportError
@@ -35,7 +33,10 @@ class StoryGenerator:
                 premise=ctx.premise,
                 tone=ctx.tone,
                 character_json=char_json,
-                history=[{"title": h.title, "body": h.body, "chosen_label": h.chosen_label} for h in ctx.history],
+                history=[
+                    {"title": h.title, "body": h.body, "chosen_label": h.chosen_label}
+                    for h in ctx.history
+                ],
                 choice=ctx.choice,
             )
 
@@ -49,12 +50,9 @@ class StoryGenerator:
         except LLMOutputError as e:
             # One retry with correction message
             messages.append(("user", correction_message(e)))
-            try:
-                raw = await self._llm.chat(messages)
-                data = parse_generated_page(raw)
-                return GeneratedPage.model_validate(data)
-            except LLMOutputError:
-                raise  # Second failure → propagate
+            raw = await self._llm.chat(messages)
+            data = parse_generated_page(raw)
+            return GeneratedPage.model_validate(data)
 
         except LLMTransportError:
             raise  # Transport errors don't retry

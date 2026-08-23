@@ -1,5 +1,3 @@
-
-
 class StoryError(Exception):
     """Base exception for story errors."""
 

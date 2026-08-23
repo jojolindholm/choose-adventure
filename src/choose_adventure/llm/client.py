@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import json
+from typing import cast
 
 from openai import AsyncOpenAI
+from openai.types.chat import ChatCompletionMessageParam
 
 from choose_adventure.config import CyaConfig
+
 from .errors import LLMOutputError, LLMTransportError
 
 
@@ -24,7 +27,7 @@ class LLMClient:
     async def chat(self, messages: list[tuple[str, str]]) -> str:
         """Send a chat completion request and return the extracted text.
 
-        REASONING-MODEL GUARD: qwen/qwen3.8-27b may return JSON in reasoning_content
+        REASONING-MODEL GUARD: huihui-qwen3.8-27b-abliterated may return JSON in reasoning_content
         or as a dict-valued content field. Extract in priority order:
         1. message.content if non-empty str
         2. message.reasoning_content if non-empty str
@@ -32,9 +35,12 @@ class LLMClient:
         4. raise LLMOutputError("empty model reply")
         """
         try:
+            params: list[ChatCompletionMessageParam] = [
+                cast(ChatCompletionMessageParam, {"role": r, "content": c}) for r, c in messages
+            ]
             resp = await self._client.chat.completions.create(
                 model=self._config.model,
-                messages=[{"role": r, "content": c} for r, c in messages],  # type: ignore[arg-type]
+                messages=params,
                 temperature=self._config.temperature,
                 max_tokens=self._config.max_tokens,
             )
@@ -66,9 +72,8 @@ class LLMClient:
             # Priority 4: empty reply
             raise LLMOutputError("empty model reply")
 
-        except LLMOutputError:
-            raise  # Don't wrap output errors in transport errors
-
         except Exception as e:
+            if isinstance(e, LLMOutputError):
+                raise
             # Wrap any openai/httpx exception in LLMTransportError
             raise LLMTransportError(str(e))

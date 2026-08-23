@@ -1,6 +1,3 @@
-
-
-
 from textual.widgets import Static
 
 from choose_adventure.story.models import CharacterState

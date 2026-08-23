@@ -1,25 +1,19 @@
-
-
-
 from __future__ import annotations
 
 import pathlib
-from typing import Any
+from typing import Any, ClassVar
 
 from textual.app import App, ComposeResult
-from textual.binding import Binding
+from textual.binding import Binding, BindingType
 from textual.containers import Container
-from textual.screen import Screen
-from textual.screen import ModalScreen
-from textual.widgets import Footer, Header, Static
-
-from typing import Any
+from textual.screen import ModalScreen, Screen
+from textual.widgets import Footer, Header, Input, Static
 
 from choose_adventure.config import CyaConfig
 from choose_adventure.llm.errors import LLMError
-from choose_adventure.story.errors import StoryEndedError
 from choose_adventure.storage.repo import StoryRepository, StorySummary
-from choose_adventure.story.engine import PageGenerator, StoryEngine
+from choose_adventure.story.engine import StoryEngine
+from choose_adventure.story.errors import StoryEndedError
 from choose_adventure.ui.widgets import CharacterPanel
 
 
@@ -76,12 +70,15 @@ class ConfirmDialog(ModalScreen):
 class MenuScreen(Screen):
     """Main menu screen."""
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         Binding("1", "new_story", "New story"),
         Binding("2", "continue_story", "Continue"),
         Binding("3", "replay_stories", "Replay..."),
+        Binding("4", "quit_app", "Quit"),
         Binding("q", "quit_app", "Quit"),
     ]
+
+    app: AdventureApp
 
     def __init__(self, repo: StoryRepository):
         super().__init__()
@@ -119,6 +116,8 @@ class MenuScreen(Screen):
         latest = self._repo.latest_story()
         if latest and latest.get("last_page_id"):
             self.app.push_screen(StoryScreen(latest["id"], latest["last_page_id"]))
+        else:
+            self.app.notify("No story to continue.")
 
     def action_replay_stories(self) -> None:
         stories = self._repo.list_stories()
@@ -134,7 +133,12 @@ class MenuScreen(Screen):
 class NewStoryScreen(Screen):
     """New story creation screen."""
 
-    BINDINGS = [Binding("escape", "menu", "Menu")]
+    BINDINGS: ClassVar[list[BindingType]] = [
+        Binding("escape", "menu", "Menu"),
+        Binding("enter", "submit", "Submit"),
+    ]
+
+    app: AdventureApp
 
     def __init__(self):
         super().__init__()
@@ -144,22 +148,30 @@ class NewStoryScreen(Screen):
         yield Container(
             Static("NEW STORY", id="title"),
             Static("Story premise (one line):", id="premise-label"),
+            Input(placeholder="Type your premise here (press Enter to begin)", id="premise"),
+            Static("Tone (optional, e.g. eerie, comedic):", id="tone-label"),
+            Input(placeholder="Tone (optional)", id="tone"),
             Static("", id="hint"),
             id="new-story-container",
         )
         yield Footer()
 
     def on_mount(self) -> None:
-        container = self.query_one("#new-story-container", Container)
-        container.remove_children()
+        self.query_one("#premise", Input).focus()
 
-        premise_input = Static(
-            "Type your premise here (press Enter to begin)", id="premise-input"
-        )
-        tone_input = Static("Tone (optional, e.g. eerie, comedic)", id="tone-input")
-        hint = Static("", id="hint")
+    async def on_input_submitted(self, event: Input.Submitted) -> None:
+        """Enter pressed in an Input → submit the form."""
+        self.action_submit()
 
-        container.mount(Static("NEW STORY", id="title"), premise_input, tone_input, hint)
+    def action_submit(self) -> None:
+        """Read both inputs and start a new story (or show a hint)."""
+        premise = self.query_one("#premise", Input).value.strip()
+        tone = self.query_one("#tone", Input).value.strip()
+        if not premise:
+            self.query_one("#hint", Static).update("Give the story a premise first.")
+            return
+        self.query_one("#hint", Static).update("Generating your story...")
+        self.app.start_new_story(premise, tone)
 
     def action_menu(self) -> None:
         self.app.pop_screen()
@@ -168,9 +180,17 @@ class NewStoryScreen(Screen):
 class StoryScreen(Screen):
     """Story playing screen with character pane, ending state, error+retry."""
 
-    BINDINGS = [
+    BINDINGS: ClassVar[list[BindingType]] = [
         Binding("escape", "menu", "Menu"),
+        Binding("m", "menu", "Menu"),
         Binding("n", "new_story_mid_game", "New story"),
+        Binding("r", "replay", "Replay"),
+        Binding("q", "quit", "Quit"),
+        Binding("a", "retry", "Retry"),
+        Binding("1", "choose_1", "1"),
+        Binding("2", "choose_2", "2"),
+        Binding("3", "choose_3", "3"),
+        Binding("4", "choose_4", "4"),
     ]
 
     app: AdventureApp
@@ -186,7 +206,12 @@ class StoryScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        main = Container(Static("", id="topbar"), Static("", id="story-pane"), CharacterPanel(id="character-pane"), id="main")
+        main = Container(
+            Static("", id="topbar"),
+            Static("", id="story-pane"),
+            CharacterPanel(id="character-pane"),
+            id="main",
+        )
         yield Container(main, id="story-area")
         options_dock = Container(id="options-dock")
         yield Container(options_dock)
@@ -233,19 +258,91 @@ class StoryScreen(Screen):
         self._pending = None
 
     def action_menu(self) -> None:
-        self.app.push_screen(ConfirmDialog("Back to the menu?", "Menu?"), callback=self._on_menu_confirm)
+        if self._busy:
+            return
+        self.app.push_screen(
+            ConfirmDialog("Back to the menu?", "Menu?"), callback=self._on_menu_confirm
+        )
 
     def _on_menu_confirm(self, result: Any) -> None:
         if result is True:
             self.app.pop_screen()
 
     def action_new_story_mid_game(self) -> None:
-        self.app.push_screen(ConfirmDialog("Start a new story? The current one stays saved.", "New story?"),
-                             callback=self._on_new_story_confirm)
+        if self._busy:
+            return
+        self.app.push_screen(
+            ConfirmDialog("Start a new story? The current one stays saved.", "New story?"),
+            callback=self._on_new_story_confirm,
+        )
 
     def _on_new_story_confirm(self, result: Any) -> None:
         if result is True:
             self.app.push_screen(NewStoryScreen())
+
+    def action_quit(self) -> None:
+        if self._busy:
+            return
+        self.app.push_screen(
+            ConfirmDialog("Quit the game?", "Quit?"), callback=self._on_quit_confirm
+        )
+
+    def _on_quit_confirm(self, result: Any) -> None:
+        if result is True:
+            self.app.exit()
+
+    def action_replay(self) -> None:
+        if self._busy:
+            return
+        self.app.push_screen(
+            ConfirmDialog("Replay this story from the beginning?", "Replay?"),
+            callback=self._on_replay_confirm,
+        )
+
+    def _on_replay_confirm(self, result: Any) -> None:
+        if result is True:
+            self._replay_story()
+
+    def _replay_story(self) -> None:
+        first_page_id = self.app.repo.first_page_id(self._story_id)
+        if first_page_id is None:
+            self.notify("This story has no pages to replay.")
+            return
+        self.app.push_screen(StoryScreen(self._story_id, first_page_id))
+
+    def action_retry(self) -> None:
+        """Re-run the pending failed choice."""
+        if self._busy or self._pending is None:
+            return
+        _page, option = self._pending
+        self._pending = None
+        self._run_choose(option)
+
+    def action_choose_1(self) -> None:
+        self._handle_choice(1)
+
+    def action_choose_2(self) -> None:
+        self._handle_choice(2)
+
+    def action_choose_3(self) -> None:
+        self._handle_choice(3)
+
+    def action_choose_4(self) -> None:
+        self._handle_choice(4)
+
+    def _handle_choice(self, n: int) -> None:
+        """Dispatch a numeric key: option choice or ending action."""
+        if self._busy:
+            return
+        if self._page and self._page["is_ending"]:
+            if n == 1:
+                self._replay_story()
+            elif n == 2:
+                self.action_new_story_mid_game()
+            elif n == 3:
+                self.action_menu()
+            return
+        self._choose(n)
 
     def _choose(self, option_index: int) -> None:
         """Choose an option by index (1-based)."""
@@ -257,7 +354,17 @@ class StoryScreen(Screen):
             return
 
         option = self._options[option_index - 1]
+        self._run_choose(option)
+
+    def _run_choose(self, option: dict) -> None:
+        """Run the choose worker for a given option dict."""
+        if self._busy:
+            return
         self._busy = True
+
+        dock = self.query_one("#options-dock", Container)
+        dock.remove_children()
+        dock.mount(Static("Generating...", id="busy-indicator"))
 
         async def _do_choose() -> None:
             try:
@@ -271,7 +378,12 @@ class StoryScreen(Screen):
                 self._pending = (self._page, option)
                 dock = self.query_one("#options-dock", Container)
                 dock.remove_children()
-                dock.mount(Static(f"The tale faltered: {e.detail} — [a] retry, [m] menu, [q] quit", id="error-text"))
+                dock.mount(
+                    Static(
+                        f"The tale faltered: {e.detail} — [a] retry, [m] menu, [q] quit",
+                        id="error-text",
+                    )
+                )
             except StoryEndedError:
                 self.notify("The story has ended.")
             finally:
@@ -283,7 +395,20 @@ class StoryScreen(Screen):
 class ReplayListScreen(Screen):
     """List of saved stories to replay."""
 
-    BINDINGS = [Binding("escape", "menu", "Menu")]
+    BINDINGS: ClassVar[list[BindingType]] = [
+        Binding("escape", "menu", "Menu"),
+        Binding("1", "replay_1", "1"),
+        Binding("2", "replay_2", "2"),
+        Binding("3", "replay_3", "3"),
+        Binding("4", "replay_4", "4"),
+        Binding("5", "replay_5", "5"),
+        Binding("6", "replay_6", "6"),
+        Binding("7", "replay_7", "7"),
+        Binding("8", "replay_8", "8"),
+        Binding("9", "replay_9", "9"),
+    ]
+
+    app: AdventureApp
 
     def __init__(self, stories: list[StorySummary]):
         super().__init__()
@@ -291,11 +416,48 @@ class ReplayListScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        container = Container(id="replay-container")
-        for i, story in enumerate(self._stories, 1):
-            container.mount(Static(f"{i}. {story.title} — \"{story.premise}\"", id=f"replay-{i}"))
-        yield container
+        with Container(id="replay-container"):
+            for i, story in enumerate(self._stories, 1):
+                yield Static(f'{i}. {story.title} — "{story.premise}"', id=f"replay-{i}")
         yield Footer()
+
+    def action_replay_1(self) -> None:
+        self._pick(1)
+
+    def action_replay_2(self) -> None:
+        self._pick(2)
+
+    def action_replay_3(self) -> None:
+        self._pick(3)
+
+    def action_replay_4(self) -> None:
+        self._pick(4)
+
+    def action_replay_5(self) -> None:
+        self._pick(5)
+
+    def action_replay_6(self) -> None:
+        self._pick(6)
+
+    def action_replay_7(self) -> None:
+        self._pick(7)
+
+    def action_replay_8(self) -> None:
+        self._pick(8)
+
+    def action_replay_9(self) -> None:
+        self._pick(9)
+
+    def _pick(self, n: int) -> None:
+        if n < 1 or n > len(self._stories):
+            self.notify(f"Invalid choice. Enter 1-{len(self._stories)}.")
+            return
+        story = self._stories[n - 1]
+        first_page_id = self.app.repo.first_page_id(story.id)
+        if first_page_id is None:
+            self.notify("This story has no pages to replay.")
+            return
+        self.app.push_screen(StoryScreen(story.id, first_page_id))
 
     def action_menu(self) -> None:
         self.app.pop_screen()
@@ -360,17 +522,41 @@ class AdventureApp(App):
     }
     """
 
-    BINDINGS = [Binding("q", "quit_app", "Quit")]
+    BINDINGS: ClassVar[list[BindingType]] = [Binding("q", "quit_app", "Quit")]
 
     def __init__(self, config: CyaConfig, repo: StoryRepository, engine: StoryEngine):
         super().__init__()
         self.config = config
         self.repo = repo
         self.engine = engine
+        self._story_busy = False
 
     def compose(self) -> ComposeResult:
-        yield Header()
         yield MenuScreen(self.repo)
+
+    def on_mount(self) -> None:
+        self.push_screen(MenuScreen(self.repo))
+
+    def start_new_story(self, premise: str, tone: str = "") -> None:
+        """Start a new story from a premise, navigating to the first page.
+
+        Runs the generation as a Textual worker so the NewStoryScreen action can
+        return immediately (avoiding a deadlock when the worker pops it).
+        """
+        self._story_busy = True
+
+        async def _start() -> None:
+            try:
+                page = await self.engine.start_story(premise, tone)
+                self.pop_screen()  # remove the NewStoryScreen
+                await self.push_screen(StoryScreen(page["story_id"], page["id"]))
+            except LLMError as e:
+                self.notify(f"Could not start story: {e.detail}")
+                self.pop_screen()  # remove the NewStoryScreen, back to menu
+            finally:
+                self._story_busy = False
+
+        self.run_worker(_start(), exclusive=True)
 
     def action_quit_app(self) -> None:
         self.exit()
@@ -381,7 +567,7 @@ def main() -> None:
     import argparse
 
     parser = argparse.ArgumentParser(description="Choose Your Adventure")
-    parser.add_argument("--model", default="qwen/qwen3.8-27b")
+    parser.add_argument("--model", default="huihui-qwen3.8-27b-abliterated")
     parser.add_argument("--base-url", default="http://llm.courtdata.se/v1")
     parser.add_argument("--db", default="~/.local/share/choose-adventure/stories.db")
     args = parser.parse_args()
@@ -394,8 +580,10 @@ def main() -> None:
 
     repo = StoryRepository(pathlib.Path(config.db_path).expanduser())
     from choose_adventure.llm.client import LLMClient
+
     llm = LLMClient(config)
     from choose_adventure.llm.storygen import StoryGenerator
+
     gen = StoryGenerator(llm)
     engine = StoryEngine(repo, gen)
 

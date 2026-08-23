@@ -1,9 +1,5 @@
-
-import json
-from pathlib import Path
-
 import sqlite3
-
+from pathlib import Path
 
 SCHEMA_VERSION = 1
 
@@ -68,7 +64,11 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
     cursor = conn.execute("SELECT value FROM meta WHERE key = 'schema_version'")
     row = cursor.fetchone()
     if row is None:
-        conn.execute("INSERT INTO meta (key, value) VALUES ('schema_version', ?)", (str(SCHEMA_VERSION),))
+        conn.execute(
+            "INSERT INTO meta (key, value) VALUES ('schema_version', ?)", (str(SCHEMA_VERSION),)
+        )
     else:
-        conn.execute("UPDATE meta SET value = ? WHERE key = 'schema_version'", (str(SCHEMA_VERSION),))
+        conn.execute(
+            "UPDATE meta SET value = ? WHERE key = 'schema_version'", (str(SCHEMA_VERSION),)
+        )
     conn.commit()
