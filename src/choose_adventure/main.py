@@ -21,13 +21,18 @@ def main() -> int:
     from choose_adventure.story.engine import StoryEngine
     from choose_adventure.ui.app import AdventureApp
 
-    config = CyaConfig(
-        base_url=args.base_url,
-        model=args.model,
-        db_path=str(pathlib.Path(args.db).expanduser()),
-    )
+    config = CyaConfig.from_args(args)
 
-    repo = StoryRepository(pathlib.Path(config.db_path).expanduser())
+    db_path = pathlib.Path(config.db_path).expanduser()
+    parent = db_path.parent
+    if not parent.exists():
+        try:
+            parent.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            print(f"error: cannot create database directory: {parent}", file=sys.stderr)
+            return 1
+
+    repo = StoryRepository(db_path)
     llm = LLMClient(config)
     gen = StoryGenerator(llm)
     engine = StoryEngine(repo, gen)
