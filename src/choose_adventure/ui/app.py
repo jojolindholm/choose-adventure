@@ -1,24 +1,76 @@
 
 
+
 from __future__ import annotations
 
-import asyncio
 import pathlib
 from typing import Any
-
-from typing import cast
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding
 from textual.containers import Container
 from textual.screen import Screen
+from textual.screen import ModalScreen
 from textual.widgets import Footer, Header, Static
+
+from typing import Any
 
 from choose_adventure.config import CyaConfig
 from choose_adventure.llm.errors import LLMError
 from choose_adventure.story.errors import StoryEndedError
 from choose_adventure.storage.repo import StoryRepository, StorySummary
 from choose_adventure.story.engine import PageGenerator, StoryEngine
+from choose_adventure.ui.widgets import CharacterPanel
+
+
+class ConfirmDialog(ModalScreen):
+    """Simple confirmation dialog."""
+
+    DEFAULT_CSS = """
+    ConfirmDialog {
+        layout: vertical;
+        align-horizontal: center;
+        background: $background 70%;
+    }
+
+    ConfirmDialog > Container {
+        width: 50;
+        height: auto;
+        border: solid $primary;
+        background: $surface;
+        padding: 1;
+    }
+
+    ConfirmDialog > Container > #confirm-message {
+        text-align: center;
+        height: 1;
+    }
+
+    ConfirmDialog > Container > #confirm-buttons {
+        height: 1;
+    }
+
+    ConfirmDialog > Container > #confirm-buttons > Button {
+        width: 10;
+    }
+    """
+
+    def __init__(self, message: str, title: str = "Confirm"):
+        super().__init__()
+        self._message = message
+        self._title = title
+
+    def compose(self) -> ComposeResult:
+        with Container():
+            yield Static(f"[bold]{self._title}[/bold]", id="confirm-message")
+            yield Static(self._message, id="confirm-text")
+            yield Container(Static("  [Y]es  [N]o  ", id="confirm-buttons"))
+
+    def on_key(self, event) -> None:
+        if event.key == "y":
+            self.dismiss(True)
+        elif event.key in ("n", "escape"):
+            self.dismiss(False)
 
 
 class MenuScreen(Screen):
@@ -114,7 +166,7 @@ class NewStoryScreen(Screen):
 
 
 class StoryScreen(Screen):
-    """Story playing screen."""
+    """Story playing screen with character pane, ending state, error+retry."""
 
     BINDINGS = [
         Binding("escape", "menu", "Menu"),
@@ -130,11 +182,14 @@ class StoryScreen(Screen):
         self._page: dict | None = None
         self._options: list[dict] = []
         self._busy = False
+        self._pending: tuple[dict, dict] | None = None
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield Container(Static("", id="topbar"), Static("", id="story-pane"))
-        yield Container(Static("", id="options-dock"))
+        main = Container(Static("", id="topbar"), Static("", id="story-pane"), CharacterPanel(id="character-pane"), id="main")
+        yield Container(main, id="story-area")
+        options_dock = Container(id="options-dock")
+        yield Container(options_dock)
         yield Footer()
 
     def on_mount(self) -> None:
@@ -152,10 +207,15 @@ class StoryScreen(Screen):
             f"{self._page['title']} — Page {self._page['seq']}"
         )
 
-        # Update story pane
-        self.query_one("#story-pane", Static).update(
-            f"{self._page['title']}\n\n{self._page['body']}"
-        )
+        # Update story pane with body
+        body_text = f"{self._page['title']}\n\n{self._page['body']}"
+        if self._page["is_ending"]:
+            body_text += "\n\n— The End —"
+        self.query_one("#story-pane", Static).update(body_text)
+
+        # Update character panel
+        char = self.app.repo.get_character(self._page["id"])
+        self.query_one("#character-pane", CharacterPanel).set_state(char)
 
         # Load options
         self._options = self.app.repo.get_options(self._page["id"])
@@ -163,17 +223,29 @@ class StoryScreen(Screen):
         # Update options dock
         dock = self.query_one("#options-dock", Container)
         dock.remove_children()
-        if not self._page["is_ending"]:
+
+        if self._page["is_ending"]:
+            dock.mount(Static("1) Replay this story  2) New story  3) Menu", id="ending-actions"))
+        else:
             for i, opt in enumerate(self._options, 1):
                 dock.mount(Static(f"[{i}] {opt['label']}", id=f"opt-{i}"))
-        else:
-            dock.mount(Static("— The End —", id="ending-text"))
+
+        self._pending = None
 
     def action_menu(self) -> None:
-        self.app.pop_screen()
+        self.app.push_screen(ConfirmDialog("Back to the menu?", "Menu?"), callback=self._on_menu_confirm)
+
+    def _on_menu_confirm(self, result: Any) -> None:
+        if result is True:
+            self.app.pop_screen()
 
     def action_new_story_mid_game(self) -> None:
-        self.app.push_screen(NewStoryScreen())
+        self.app.push_screen(ConfirmDialog("Start a new story? The current one stays saved.", "New story?"),
+                             callback=self._on_new_story_confirm)
+
+    def _on_new_story_confirm(self, result: Any) -> None:
+        if result is True:
+            self.app.push_screen(NewStoryScreen())
 
     def _choose(self, option_index: int) -> None:
         """Choose an option by index (1-based)."""
@@ -188,14 +260,18 @@ class StoryScreen(Screen):
         self._busy = True
 
         async def _do_choose() -> None:
-            assert self._page is not None, "No page loaded"
             try:
+                assert self._page is not None, "No page loaded"
                 new_page = await self.app.engine.choose(self._story_id, self._page, option)
                 self._page = new_page
                 self._page_id = new_page["id"]
                 self._load_page()
             except LLMError as e:
-                self.notify(f"The tale faltered: {e.detail}")
+                assert self._page is not None, "No page loaded"
+                self._pending = (self._page, option)
+                dock = self.query_one("#options-dock", Container)
+                dock.remove_children()
+                dock.mount(Static(f"The tale faltered: {e.detail} — [a] retry, [m] menu, [q] quit", id="error-text"))
             except StoryEndedError:
                 self.notify("The story has ended.")
             finally:
@@ -248,14 +324,18 @@ class AdventureApp(App):
         text-align: center;
     }
 
-    #topbar {
-        dock: top;
-        height: 1;
-        border-bottom: solid $primary;
+    #story-area {
+        height: 1fr;
+        layout: horizontal;
     }
 
     #story-pane {
         width: 1fr;
+        height: 1fr;
+    }
+
+    #character-pane {
+        width: 30;
         height: 1fr;
     }
 
@@ -267,11 +347,6 @@ class AdventureApp(App):
 
     #options-dock > Static {
         text-align: center;
-    }
-
-    #ending-text {
-        text-align: center;
-        height: 1;
     }
 
     Container#replay-container {
@@ -301,7 +376,6 @@ class AdventureApp(App):
         self.exit()
 
 
-# CLI entry point stub — wired in T10
 def main() -> None:
     """Entry point for the `cya` console script."""
     import argparse
@@ -315,11 +389,10 @@ def main() -> None:
     config = CyaConfig(
         base_url=args.base_url,
         model=args.model,
-        db_path=str(__import__("pathlib").Path(args.db).expanduser()),
+        db_path=str(pathlib.Path(args.db).expanduser()),
     )
 
     repo = StoryRepository(pathlib.Path(config.db_path).expanduser())
-    # Use a dummy generator for now — T10 wires the real one
     from choose_adventure.llm.client import LLMClient
     llm = LLMClient(config)
     from choose_adventure.llm.storygen import StoryGenerator
