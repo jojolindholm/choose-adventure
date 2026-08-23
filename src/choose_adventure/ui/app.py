@@ -14,7 +14,7 @@ from choose_adventure.llm.errors import LLMError
 from choose_adventure.storage.repo import StoryRepository, StorySummary
 from choose_adventure.story.engine import StoryEngine
 from choose_adventure.story.errors import StoryEndedError
-from choose_adventure.ui.widgets import CharacterPanel
+from choose_adventure.ui.widgets import CharacterPanel, GeneratingIndicator
 
 
 class ConfirmDialog(ModalScreen):
@@ -170,7 +170,10 @@ class NewStoryScreen(Screen):
         if not premise:
             self.query_one("#hint", Static).update("Give the story a premise first.")
             return
-        self.query_one("#hint", Static).update("Generating your story...")
+        self.query_one("#hint", Static).update("")
+        self.query_one("#new-story-container", Container).mount(
+            GeneratingIndicator("Generating story")
+        )
         self.app.start_new_story(premise, tone)
 
     def action_menu(self) -> None:
@@ -364,7 +367,7 @@ class StoryScreen(Screen):
 
         dock = self.query_one("#options-dock", Container)
         dock.remove_children()
-        dock.mount(Static("Generating...", id="busy-indicator"))
+        dock.mount(GeneratingIndicator("Generating page"))
 
         async def _do_choose() -> None:
             try:
