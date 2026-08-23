@@ -17,6 +17,13 @@ uv sync
 uv run cya
 ```
 
+### Install globally (run from any directory)
+
+```sh
+uv tool install .          # or: uv build && uv tool install ./dist/*.whl
+cya                        # now on ~/.local/bin/cya, works anywhere
+```
+
 ## Flags
 
 | Flag         | Default                                        | Description            |
