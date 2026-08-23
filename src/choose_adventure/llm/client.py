@@ -27,8 +27,9 @@ class LLMClient:
     async def chat(self, messages: list[tuple[str, str]]) -> str:
         """Send a chat completion request and return the extracted text.
 
-        REASONING-MODEL GUARD: huihui-qwen3.8-27b-abliterated may return JSON in reasoning_content
-        or as a dict-valued content field. Extract in priority order:
+        REASONING-MODEL GUARD: some models (e.g. huihui-...-abliterated, and certain
+        qwen reasoning variants) may return JSON in reasoning_content or as a dict-valued
+        content field. Extract in priority order:
         1. message.content if non-empty str
         2. message.reasoning_content if non-empty str
         3. json.dumps(message.content) when content is dict/list
