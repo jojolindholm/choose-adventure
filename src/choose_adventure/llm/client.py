@@ -18,7 +18,7 @@ class LLMClient:
         self._config = config
         self._client = AsyncOpenAI(
             base_url=config.base_url,
-            api_key="no-auth",
+            api_key=config.api_key or "no-auth",
             timeout=config.timeout,
             max_retries=0,
             http_client=http_client,

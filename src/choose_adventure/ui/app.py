@@ -572,6 +572,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Choose Your Adventure")
     parser.add_argument("--model", default="huihui-qwen3.8-27b-abliterated")
     parser.add_argument("--base-url", default="http://llm.courtdata.se/v1")
+    parser.add_argument("--api-key", default="")
     parser.add_argument("--db", default="~/.local/share/choose-adventure/stories.db")
     args = parser.parse_args()
 
@@ -579,6 +580,7 @@ def main() -> None:
         base_url=args.base_url,
         model=args.model,
         db_path=str(pathlib.Path(args.db).expanduser()),
+        api_key=args.api_key,
     )
 
     repo = StoryRepository(pathlib.Path(config.db_path).expanduser())

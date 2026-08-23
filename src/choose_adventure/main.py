@@ -7,6 +7,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description="Choose Your Adventure")
     parser.add_argument("--model", default="huihui-qwen3.8-27b-abliterated", help="LLM model name")
     parser.add_argument("--base-url", default="http://llm.courtdata.se/v1", help="LLM API base URL")
+    parser.add_argument("--api-key", default="", help="LLM API key (empty = free no-auth endpoint)")
     parser.add_argument(
         "--db", default="~/.local/share/choose-adventure/stories.db", help="SQLite database path"
     )
