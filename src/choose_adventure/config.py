@@ -11,7 +11,7 @@ class CyaConfig(BaseModel, frozen=True):
     db_path: str = "~/.local/share/choose-adventure/stories.db"
     temperature: float = 0.8
     max_tokens: int = 4000
-    timeout: float = 120.0
+    timeout: float = 300.0
 
     @classmethod
     def from_args(cls, namespace) -> CyaConfig:
