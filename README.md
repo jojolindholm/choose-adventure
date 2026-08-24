@@ -30,7 +30,24 @@ cya                        # now on ~/.local/bin/cya, works anywhere
 | ------------ | ---------------------------------------------- | ---------------------- |
 | `--model`    | `huihui-qwen3.8-27b-abliterated`               | LLM model name         |
 | `--base-url` | `http://llm.courtdata.se/v1`                   | LLM API base URL       |
+| `--api-key`  | *(empty)*                                      | LLM API key (empty → free no-auth endpoint) |
 | `--db`       | `~/.local/share/choose-adventure/stories.db`   | SQLite database path   |
+
+## Model providers
+
+**Free local endpoint (default, no key needed):**
+```sh
+cya    # http://llm.courtdata.se/v1, huihui-qwen3.8-27b-abliterated
+```
+
+**OpenRouter (e.g. fast GLM-4.7-Flash, needs an API key):** set these env vars (or in `~/.zshrc`), then run `cya`:
+```sh
+export CYA_BASE_URL="https://openrouter.ai/api/v1"
+export CYA_MODEL="z-ai/glm-4.7-flash"
+export CYA_API_KEY="sk-or-..."     # app-only key; stays out of this repo
+cya
+```
+Environment variables (`CYA_BASE_URL`, `CYA_MODEL`, `CYA_API_KEY`, `CYA_DB`) provide defaults; explicit `--model` / `--base-url` / `--api-key` / `--db` CLI flags take precedence. Keep `CYA_API_KEY` in your shell profile, not in source control.
 
 ## Keys
 
