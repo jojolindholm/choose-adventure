@@ -5,7 +5,7 @@ from typing import Any, ClassVar
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
-from textual.containers import Container
+from textual.containers import Container, VerticalScroll
 from textual.screen import ModalScreen, Screen
 from textual.widgets import Footer, Header, Input, Static
 
@@ -209,13 +209,14 @@ class StoryScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        main = Container(
-            Static("", id="topbar"),
-            Static("", id="story-pane"),
+        # Full-width topbar row
+        yield Container(Static("", id="topbar"), id="topbar-row")
+        # Side-by-side columns: story (left, scrollable) + character panel (right, fixed width)
+        yield Container(
+            VerticalScroll(Static("", id="story-pane"), id="story-scroll"),
             CharacterPanel(id="character-pane"),
-            id="main",
+            id="story-area",
         )
-        yield Container(main, id="story-area")
         options_dock = Container(id="options-dock")
         yield Container(options_dock)
         yield Footer()
@@ -489,14 +490,26 @@ class AdventureApp(App):
         text-align: center;
     }
 
+    #topbar-row {
+        height: 1;
+    }
+
+    #topbar-row > Static {
+        text-align: center;
+    }
+
     #story-area {
         height: 1fr;
         layout: horizontal;
     }
 
-    #story-pane {
+    #story-scroll {
         width: 1fr;
         height: 1fr;
+    }
+
+    #story-pane {
+        min-height: 1fr;
     }
 
     #character-pane {
