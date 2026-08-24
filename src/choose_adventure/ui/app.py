@@ -23,16 +23,17 @@ class ConfirmDialog(ModalScreen):
     DEFAULT_CSS = """
     ConfirmDialog {
         layout: vertical;
-        align-horizontal: center;
+        align: center middle;
         background: $background 70%;
     }
 
     ConfirmDialog > Container {
-        width: 50;
+        width: 42;
         height: auto;
         border: solid $primary;
         background: $surface;
         padding: 1;
+        layout: vertical;
     }
 
     ConfirmDialog > Container > #confirm-message {
@@ -42,10 +43,7 @@ class ConfirmDialog(ModalScreen):
 
     ConfirmDialog > Container > #confirm-buttons {
         height: 1;
-    }
-
-    ConfirmDialog > Container > #confirm-buttons > Button {
-        width: 10;
+        content-align: center middle;
     }
     """
 
@@ -58,7 +56,7 @@ class ConfirmDialog(ModalScreen):
         with Container():
             yield Static(f"[bold]{self._title}[/bold]", id="confirm-message")
             yield Static(self._message, id="confirm-text")
-            yield Container(Static("  [Y]es  [N]o  ", id="confirm-buttons"))
+            yield Static("  [b]\\[Y][/b]es   [b]\\[N][/b]o  ", id="confirm-buttons")
 
     def on_key(self, event) -> None:
         if event.key == "y":
@@ -190,10 +188,12 @@ class StoryScreen(Screen):
         Binding("r", "replay", "Replay"),
         Binding("q", "quit", "Quit"),
         Binding("a", "retry", "Retry"),
-        Binding("1", "choose_1", "1"),
-        Binding("2", "choose_2", "2"),
-        Binding("3", "choose_3", "3"),
-        Binding("4", "choose_4", "4"),
+        # Option choice keys (1-4) are shown in the on-screen options dock, so keep
+        # them out of the footer to avoid redundant "1 → 1, 2 → 2" noise.
+        Binding("1", "choose_1", "1", show=False),
+        Binding("2", "choose_2", "2", show=False),
+        Binding("3", "choose_3", "3", show=False),
+        Binding("4", "choose_4", "4", show=False),
     ]
 
     app: AdventureApp

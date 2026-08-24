@@ -83,12 +83,23 @@ class CharacterPanel(Static):
         traits = ", ".join(state.traits) if state.traits else "-"
         inventory = ", ".join(state.inventory) if state.inventory else "-"
 
+        # Two-line layout per field: bold label on its own row, value indented below.
+        # Wrapped value lines then keep a consistent indentation instead of sliding
+        # back to column 0 under the label.
+        def _field(label: str, value: str) -> str:
+            return f"[bold]{label}[/bold]\n  {value}"
+
         self.update(
-            f"CHARACTER\n"
-            f"Name:      {name}\n"
-            f"Role:      {role}\n"
-            f"Location:  {location}\n"
-            f"Condition: {condition}\n"
-            f"Traits:    {traits}\n"
-            f"Inventory: {inventory}"
+            "[bold]CHARACTER[/bold]\n"
+            + _field("Name", name)
+            + "\n"
+            + _field("Role", role)
+            + "\n"
+            + _field("Location", location)
+            + "\n"
+            + _field("Condition", condition)
+            + "\n"
+            + _field("Traits", traits)
+            + "\n"
+            + _field("Inventory", inventory)
         )
