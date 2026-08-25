@@ -114,6 +114,14 @@ def test_label_is_stripped():
     assert opt.label == "Go"
 
 
+def test_plain_string_option_coerced():
+    """A plain string is coerced to an option label (model output leniency)."""
+    opt = GeneratedOption.model_validate("Run for the hills")
+    assert opt.label == "Run for the hills"
+    opts = [GeneratedOption.model_validate("A"), GeneratedOption.model_validate("B")]
+    assert [o.label for o in opts] == ["A", "B"]
+
+
 # --- merge_character ---
 
 

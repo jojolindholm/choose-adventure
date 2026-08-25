@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import Protocol
 
 from fastapi import Depends, FastAPI, Header, HTTPException, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 from choose_adventure.config import CyaConfig
@@ -114,6 +115,11 @@ def create_app(
     app = FastAPI(title="Choose Your Adventure Server")
     app.state.cya = state
     app.state.cya_token = token
+
+    @app.exception_handler(Exception)
+    async def unhandled_exception(request: Request, exc: Exception) -> JSONResponse:
+        """Any uncaught exception becomes a clean JSON 500 (traceback is logged)."""
+        return JSONResponse(status_code=500, content={"detail": "internal server error"})
 
     @app.get("/api/health")
     def health() -> dict:

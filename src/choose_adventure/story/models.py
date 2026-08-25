@@ -20,6 +20,10 @@ class GeneratedOption(BaseModel):
     @model_validator(mode="before")
     @classmethod
     def strip_label(cls, data: Any) -> Any:
+        # Models sometimes emit options as plain strings ("Do a thing") instead of
+        # {"label": "Do a thing"}; coerce rather than fail the whole page.
+        if isinstance(data, str):
+            data = {"label": data}
         if isinstance(data, dict):
             data = dict(data)
             if "label" in data and isinstance(data["label"], str):

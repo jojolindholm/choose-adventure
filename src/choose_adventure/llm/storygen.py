@@ -1,11 +1,26 @@
 from __future__ import annotations
 
+from pydantic import ValidationError
+
 from choose_adventure.story.models import GeneratedPage, GenerationContext
 
 from .client import LLMClient
 from .errors import LLMOutputError, LLMTransportError
 from .parse import correction_message, parse_generated_page
 from .prompts import SYSTEM_PROMPT, first_page_user_prompt, next_page_user_prompt
+
+
+def _validate_page(data: dict) -> GeneratedPage:
+    """Validate parsed model output; schema violations become LLMOutputError.
+
+    The JSON may parse fine while still violating the schema (e.g. options as
+    plain strings, missing character). Treating these as LLMOutputError routes
+    them through the correction retry instead of crashing the caller.
+    """
+    try:
+        return GeneratedPage.model_validate(data)
+    except ValidationError as e:
+        raise LLMOutputError(f"page failed schema validation: {str(e)[:200]}") from e
 
 
 class StoryGenerator:
@@ -46,13 +61,13 @@ class StoryGenerator:
         try:
             raw = await self._llm.chat(messages)
             data = parse_generated_page(raw)
-            return GeneratedPage.model_validate(data)
+            return _validate_page(data)
         except LLMOutputError as e:
             # One retry with correction message
             messages.append(("user", correction_message(e)))
             raw = await self._llm.chat(messages)
             data = parse_generated_page(raw)
-            return GeneratedPage.model_validate(data)
+            return _validate_page(data)
 
         except LLMTransportError:
             raise  # Transport errors don't retry

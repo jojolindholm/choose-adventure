@@ -155,3 +155,17 @@ def test_llm_failure_maps_to_502(tmp_path: Path) -> None:
         resp = c.post("/api/stories", headers=_headers(), json={"premise": "A quest."})
         assert resp.status_code == 502
         assert resp.json()["detail"] == "boom"
+
+
+def test_unexpected_error_returns_clean_500(tmp_path: Path) -> None:
+    """Any uncaught generator exception → clean JSON 500, not a raw traceback."""
+
+    class Boom:
+        async def next_page(self, ctx):
+            raise RuntimeError("kaboom")
+
+    app = create_app(data_dir=tmp_path, token=TOKEN, generator=Boom())  # type: ignore[arg-type]
+    with TestClient(app, raise_server_exceptions=False) as c:
+        resp = c.post("/api/stories", headers=_headers(), json={"premise": "A quest."})
+        assert resp.status_code == 500
+        assert resp.json() == {"detail": "internal server error"}

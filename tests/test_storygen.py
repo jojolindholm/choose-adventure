@@ -61,3 +61,30 @@ async def test_transport_error_propagates():
     with pytest.raises(LLMTransportError):
         await gen.next_page(ctx)
     assert fake.call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_schema_violation_retries_with_correction():
+    """JSON that parses but violates the schema → LLMOutputError → one retry."""
+    bad = '{"page_title": "P2", "page_text": 12345, "is_ending": false, "options": [{"label": "A"}, {"label": "B"}], "character": {"name": "Hero"}}'
+    good = '{"page_title": "P2", "page_text": "Body.", "is_ending": false, "options": [{"label": "A"}, {"label": "B"}], "character": {"name": "Hero"}}'
+    fake = FakeChat([bad, good])
+    gen = StoryGenerator(fake)  # type: ignore[arg-type]
+
+    ctx = GenerationContext(premise="Test", tone="", history=[], choice="Go")
+    result = await gen.next_page(ctx)
+    assert isinstance(result, GeneratedPage)
+    assert fake.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_string_options_are_accepted():
+    """Models sometimes emit options as plain strings; they coerce to labels."""
+    raw = '{"page_title": "P2", "page_text": "Body.", "is_ending": false, "options": ["Run", "Hide"], "character": {"name": "Hero"}}'
+    fake = FakeChat([raw])
+    gen = StoryGenerator(fake)  # type: ignore[arg-type]
+
+    ctx = GenerationContext(premise="Test", tone="", history=[], choice="Go")
+    result = await gen.next_page(ctx)
+    assert [o.label for o in result.options] == ["Run", "Hide"]
+    assert fake.call_count == 1
