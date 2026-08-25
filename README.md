@@ -101,9 +101,12 @@ uv run cya-client --server http://localhost:8787 --token "$CYA_SERVER_TOKEN" --p
 ```
 
 Env vars `CYA_SERVER_URL`, `CYA_SERVER_TOKEN`, `CYA_PLAYER` provide the same
-defaults. Each player gets their own stories; a shared secret blocks stray
-connections. The client is the same Textual UI as the local app, talking to
-the server instead of the local engine.
+defaults; a machine-local `~/.config/choose-adventure/client.env`
+(`KEY=value` lines) is read when the env vars are unset, so `cya-client`
+works with no arguments on the machine where the server runs. Each player
+gets their own stories; a shared secret blocks stray connections. The client
+is the same Textual UI as the local app, talking to the server instead of
+the local engine.
 
 ## Development
 

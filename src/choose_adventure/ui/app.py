@@ -243,7 +243,7 @@ class StoryScreen(Screen):
             id="story-area",
         )
         options_dock = Container(id="options-dock")
-        yield Container(options_dock)
+        yield Container(options_dock, id="options-wrap")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -544,8 +544,11 @@ class AdventureApp(App):
         height: 1fr;
     }
 
+    #options-wrap {
+        height: auto;
+    }
+
     #options-dock {
-        dock: bottom;
         height: auto;
         border-top: solid $primary;
     }

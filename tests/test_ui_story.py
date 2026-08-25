@@ -1,7 +1,7 @@
 from pathlib import Path
 
 import pytest
-from textual.widgets import Input
+from textual.widgets import Footer, Input
 
 from choose_adventure.config import CyaConfig
 from choose_adventure.llm.errors import LLMOutputError
@@ -299,3 +299,21 @@ async def test_exact_replay_from_menu(app: AdventureApp, faker: FakeGenerator):
         assert stored_page2 is not None
         assert _story_body(app) == f"{stored_page2['title']}\n\n{stored_page2['body']}"
         assert len(faker.calls) == calls_after_play
+
+
+@pytest.mark.asyncio
+async def test_story_area_fills_to_options_dock(app: AdventureApp, faker: FakeGenerator):
+    """Story pane extends to the options dock: no dead space, no overlap with footer."""
+    async with app.run_test() as pilot:
+        await _start_story_via_ui(pilot, "A quest.")
+        screen = app.screen
+        story = screen.query_one("#story-area").region
+        wrap = screen.query_one("#options-wrap").region
+        dock = screen.query_one("#options-dock").region
+        footer = screen.query_one(Footer).region
+        # Story area reaches the options dock (no blank gap).
+        assert wrap.y == story.y + story.height
+        # Options dock fills its wrapper exactly.
+        assert dock == wrap
+        # Dock sits above the footer, no overlap.
+        assert dock.y + dock.height <= footer.y
