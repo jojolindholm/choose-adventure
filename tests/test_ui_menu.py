@@ -65,7 +65,7 @@ async def test_menu_renders_when_empty(app: AdventureApp):
 
 
 @pytest.mark.asyncio
-async def test_menu_renders_when_story_exists(app: AdventureApp):
+async def test_menu_renders_when_story_exists(app: AdventureApp, repo: StoryRepository):
     """Menu renders a Continue row when a story exists."""
     page1 = GeneratedPage(
         page_title="Start",
@@ -75,7 +75,7 @@ async def test_menu_renders_when_story_exists(app: AdventureApp):
         character=CharacterState(name="Hero"),
     )
     faker = FakeGenerator([page1])
-    app.engine = StoryEngine(app.repo, faker)
+    app.engine = StoryEngine(repo, faker)
 
     # Seed a story by starting one
     await app.engine.start_story("Test", "")
@@ -133,11 +133,11 @@ async def test_quit_from_menu(app: AdventureApp):
 
 
 @pytest.mark.asyncio
-async def test_continue_shows_page2(app: AdventureApp):
+async def test_continue_shows_page2(app: AdventureApp, repo: StoryRepository):
     """With a seeded 2-page story, press Continue → StoryScreen shows page-2 body."""
     char = CharacterState(name="Hero")
     seed_story(
-        app.repo,
+        repo,
         [
             ("Start", "You begin.", ["Go", "Stay"], char, False),
             ("North", "You went north.", ["Continue", "Look"], char, False),

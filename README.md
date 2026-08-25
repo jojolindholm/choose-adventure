@@ -66,9 +66,44 @@ Stories are stored in a SQLite database at `~/.local/share/choose-adventure/stor
 (override with `--db`). Each page, its options, and the character state are
 persisted as you play.
 
-Replay reads the stored story from disk — already-generated pages are shown
-exactly as written and are never regenerated. Choosing an option that has not
-been explored yet generates a new page and grows the story from there.
+## Server + thin client (multiplayer)
+
+The game can run as a server on one machine with thin terminal clients
+connecting over HTTP. The server owns the LLM calls and the SQLite databases;
+clients only render pages and send choices.
+
+### Run the server (Docker)
+
+```sh
+CYA_SERVER_TOKEN="pick-a-shared-secret" \
+CYA_BASE_URL="https://openrouter.ai/api/v1" \
+CYA_MODEL="z-ai/glm-4.7-flash" \
+CYA_API_KEY="sk-or-..." \
+docker compose up -d --build
+```
+
+This serves `http://localhost:8787`. Player databases live in the `cya-data`
+Docker volume (one `stories-<player>.db` file per player). The LLM endpoint
+and databases are never exposed to clients — only the API port is public.
+
+### Run the server without Docker
+
+```sh
+export CYA_SERVER_TOKEN="pick-a-shared-secret"
+export CYA_DATA_DIR=./data        # where per-player .db files go (default ./data)
+uv run cya-server                 # listens on 0.0.0.0:8787
+```
+
+### Connect a thin client
+
+```sh
+uv run cya-client --server http://localhost:8787 --token "$CYA_SERVER_TOKEN" --player alice
+```
+
+Env vars `CYA_SERVER_URL`, `CYA_SERVER_TOKEN`, `CYA_PLAYER` provide the same
+defaults. Each player gets their own stories; a shared secret blocks stray
+connections. The client is the same Textual UI as the local app, talking to
+the server instead of the local engine.
 
 ## Development
 

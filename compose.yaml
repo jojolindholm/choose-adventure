@@ -1,0 +1,18 @@
+services:
+  cya-server:
+    build: .
+    ports:
+      - "8787:8787"
+    volumes:
+      - cya-data:/data
+    environment:
+      # Required: shared secret that thin clients send as X-CYA-Token.
+      CYA_SERVER_TOKEN: ${CYA_SERVER_TOKEN:?set CYA_SERVER_TOKEN in .env or the shell}
+      # LLM provider config (same env vars the local app honours).
+      CYA_BASE_URL: ${CYA_BASE_URL:-http://llm.courtdata.se/v1}
+      CYA_MODEL: ${CYA_MODEL:-huihui-qwen3.8-27b-abliterated}
+      CYA_API_KEY: ${CYA_API_KEY:-}
+    restart: unless-stopped
+
+volumes:
+  cya-data:

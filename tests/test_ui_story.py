@@ -158,7 +158,7 @@ async def test_ending_new_story(app: AdventureApp, faker: FakeGenerator):
 
 
 @pytest.mark.asyncio
-async def test_error_retry(app: AdventureApp, faker: FakeGenerator):
+async def test_error_retry(app: AdventureApp, faker: FakeGenerator, repo: StoryRepository):
     """Script [page1, LLMOutputError('boom'), page2] → error visible; press a → recovery."""
     page1 = GeneratedPage(
         page_title="Start",
@@ -176,7 +176,7 @@ async def test_error_retry(app: AdventureApp, faker: FakeGenerator):
     )
 
     error_faker = FakeGenerator([page1, LLMOutputError("boom"), page2])
-    app.engine = StoryEngine(app.repo, error_faker)
+    app.engine = StoryEngine(repo, error_faker)
 
     async with app.run_test() as pilot:
         await _start_story_via_ui(pilot, "Test")
@@ -199,10 +199,10 @@ async def test_error_retry(app: AdventureApp, faker: FakeGenerator):
 
 
 @pytest.mark.asyncio
-async def test_busy_guard(app: AdventureApp, faker: FakeGenerator):
+async def test_busy_guard(app: AdventureApp, faker: FakeGenerator, repo: StoryRepository):
     """FakeGenerator delay=0.3 → press 1 three times rapidly → only one choose call."""
     delay_faker = FakeGenerator([faker._script[0], faker._script[1]], delay=0.3)
-    app.engine = StoryEngine(app.repo, delay_faker)
+    app.engine = StoryEngine(repo, delay_faker)
 
     async with app.run_test() as pilot:
         await _start_story_via_ui(pilot, "Test")

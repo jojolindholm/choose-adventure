@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import os
 import pathlib
 
@@ -34,3 +35,14 @@ class CyaConfig(BaseModel, frozen=True):
             db_path=str(pathlib.Path(_env("CYA_DB", namespace.db) or namespace.db).expanduser()),
             api_key=_env("CYA_API_KEY", namespace.api_key),
         )
+
+    @classmethod
+    def from_env(cls) -> CyaConfig:
+        """Build config from CYA_* env vars with the same defaults as the CLI."""
+        ns = argparse.Namespace(
+            base_url="http://llm.courtdata.se/v1",
+            model="huihui-qwen3.8-27b-abliterated",
+            api_key="",
+            db="~/.local/share/choose-adventure/stories.db",
+        )
+        return cls.from_args(ns)

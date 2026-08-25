@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import pathlib
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Protocol
 
 from textual.app import App, ComposeResult
 from textual.binding import Binding, BindingType
@@ -14,7 +14,32 @@ from choose_adventure.llm.errors import LLMError
 from choose_adventure.storage.repo import StoryRepository, StorySummary
 from choose_adventure.story.engine import StoryEngine
 from choose_adventure.story.errors import StoryEndedError
+from choose_adventure.story.models import CharacterState
 from choose_adventure.ui.widgets import CharacterPanel, GeneratingIndicator
+
+
+class StoryRepoProtocol(Protocol):
+    """Read surface the screens need; satisfied by StoryRepository or the remote adapter."""
+
+    def latest_story(self) -> dict | None: ...
+
+    def list_stories(self) -> list[StorySummary]: ...
+
+    def get_page(self, page_id: int) -> dict | None: ...
+
+    def get_character(self, page_id: int) -> CharacterState | None: ...
+
+    def get_options(self, page_id: int) -> list[dict]: ...
+
+    def first_page_id(self, story_id: int) -> int | None: ...
+
+
+class StoryEngineProtocol(Protocol):
+    """Generation surface; satisfied by StoryEngine or the remote adapter."""
+
+    async def start_story(self, premise: str, tone: str = "") -> dict: ...
+
+    async def choose(self, story_id: int, page: dict, option: dict) -> dict: ...
 
 
 class ConfirmDialog(ModalScreen):
@@ -78,7 +103,7 @@ class MenuScreen(Screen):
 
     app: AdventureApp
 
-    def __init__(self, repo: StoryRepository):
+    def __init__(self, repo: StoryRepoProtocol):
         super().__init__()
         self._repo = repo
 
@@ -542,7 +567,7 @@ class AdventureApp(App):
 
     BINDINGS: ClassVar[list[BindingType]] = [Binding("q", "quit_app", "Quit")]
 
-    def __init__(self, config: CyaConfig, repo: StoryRepository, engine: StoryEngine):
+    def __init__(self, config: CyaConfig, repo: StoryRepoProtocol, engine: StoryEngineProtocol):
         super().__init__()
         self.config = config
         self.repo = repo
