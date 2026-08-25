@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS meta (
@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS pages (
     body TEXT NOT NULL,
     is_ending INTEGER NOT NULL DEFAULT 0,
     parent_page_id INTEGER REFERENCES pages(id),
+    ascii_art TEXT NOT NULL DEFAULT '',
     UNIQUE(story_id, seq)
 );
 
@@ -58,8 +59,12 @@ def connect(db_path: Path) -> sqlite3.Connection:
 
 
 def ensure_schema(conn: sqlite3.Connection) -> None:
-    """Create tables if they don't exist and set schema version."""
+    """Create tables if they don't exist, migrate older versions, set schema version."""
     conn.executescript(SCHEMA_SQL)
+    # Migrate existing databases: v1 -> v2 adds the ascii_art column to pages.
+    cols = {row[1] for row in conn.execute("PRAGMA table_info(pages)")}
+    if "ascii_art" not in cols:
+        conn.execute("ALTER TABLE pages ADD COLUMN ascii_art TEXT NOT NULL DEFAULT ''")
     # Set/verify schema version
     cursor = conn.execute("SELECT value FROM meta WHERE key = 'schema_version'")
     row = cursor.fetchone()

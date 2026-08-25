@@ -27,6 +27,102 @@ def test_create_story(repo: StoryRepository):
     assert story["last_page_id"] is None
 
 
+def test_ascii_art_roundtrip(repo: StoryRepository):
+    """create_page stores ascii_art; get_page returns it verbatim."""
+    story = repo.create_story("Test", "")
+    art = "  /\\\n /  \\\n/____\\"
+    page = repo.create_page(story["id"], 1, "P1", "Body.", False, None, ascii_art=art)
+    assert page["ascii_art"] == art
+    loaded = repo.get_page(page["id"])
+    assert loaded is not None
+    assert loaded["ascii_art"] == art
+
+
+def test_ascii_art_defaults_to_empty(repo: StoryRepository):
+    """create_page without ascii_art stores an empty string."""
+    story = repo.create_story("Test", "")
+    page = repo.create_page(story["id"], 1, "P1", "Body.", False, None)
+    loaded = repo.get_page(page["id"])
+    assert loaded is not None
+    assert loaded["ascii_art"] == ""
+
+
+def test_save_generated_page_ascii_art(repo: StoryRepository):
+    """save_generated_page persists generated.ascii_art."""
+    story = repo.create_story("Test", "")
+    page = repo.create_page(story["id"], 1, "P1", "Body.", False, None)
+    opts = repo.create_options(page["id"], ["Go"])
+    art = "  /\\\n /  \\\n/____\\"
+    gen = GeneratedPage(
+        page_title="P2",
+        page_text="Body.",
+        is_ending=False,
+        options=[GeneratedOption(label="Continue"), GeneratedOption(label="Stop")],
+        character=CharacterState(name="Hero"),
+        ascii_art=art,
+    )
+    saved = repo.save_generated_page(story["id"], page["id"], gen, gen.character, opts[0]["id"])
+    assert saved["ascii_art"] == art
+    loaded = repo.get_page(saved["id"])
+    assert loaded is not None
+    assert loaded["ascii_art"] == art
+
+
+def test_v1_db_migrates_ascii_art_column(tmp_db: Path):
+    """A v1 database gains the ascii_art column on ensure_schema, existing rows default ''."""
+    # Build a v1 database by hand (old schema, version 1)
+    conn = sqlite3.connect(str(tmp_db))
+    conn.executescript(
+        """
+        CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+        INSERT INTO meta (key, value) VALUES ('schema_version', '1');
+        CREATE TABLE stories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            premise TEXT NOT NULL, tone TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL, last_page_id INTEGER
+        );
+        CREATE TABLE pages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            story_id INTEGER NOT NULL REFERENCES stories(id),
+            seq INTEGER NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL,
+            is_ending INTEGER NOT NULL DEFAULT 0,
+            parent_page_id INTEGER REFERENCES pages(id),
+            UNIQUE(story_id, seq)
+        );
+        CREATE TABLE options (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            page_id INTEGER NOT NULL REFERENCES pages(id),
+            seq INTEGER NOT NULL, label TEXT NOT NULL,
+            target_page_id INTEGER REFERENCES pages(id),
+            UNIQUE(page_id, seq)
+        );
+        CREATE TABLE character_states (
+            page_id INTEGER PRIMARY KEY REFERENCES pages(id),
+            name TEXT NOT NULL, role TEXT NOT NULL DEFAULT '',
+            location TEXT NOT NULL DEFAULT '', condition TEXT NOT NULL DEFAULT '',
+            traits TEXT NOT NULL DEFAULT '[]', inventory TEXT NOT NULL DEFAULT '[]'
+        );
+        INSERT INTO stories (id, premise, created_at) VALUES (1, 'old', 'now');
+        INSERT INTO pages (id, story_id, seq, title, body) VALUES (1, 1, 1, 'Old', 'Old body.');
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    # Open via the repo path: ensure_schema migrates
+    repo = StoryRepository(tmp_db)
+    loaded = repo.get_page(1)
+    assert loaded is not None
+    assert loaded["ascii_art"] == ""
+
+    # New pages written after migration accept ascii_art
+    story = repo.create_story("New", "")
+    page = repo.create_page(story["id"], 1, "New P", "Body.", False, None, ascii_art="art")
+    new_loaded = repo.get_page(page["id"])
+    assert new_loaded is not None
+    assert new_loaded["ascii_art"] == "art"
+
+
 def test_round_trip(repo: StoryRepository):
     """Full round-trip: story → page → options → character → link."""
     # Create story

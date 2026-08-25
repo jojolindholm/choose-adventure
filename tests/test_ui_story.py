@@ -88,6 +88,31 @@ async def test_full_playthrough_to_ending(app: AdventureApp, faker: FakeGenerato
 
 
 @pytest.mark.asyncio
+async def test_ascii_art_rendered_under_body(repo: StoryRepository):
+    """ASCII art is displayed underneath the story text."""
+    art = "  /\\\n /  \\\n/____\\"
+    page1 = GeneratedPage(
+        page_title="The Beginning",
+        page_text="You stand at a crossroads.",
+        is_ending=False,
+        options=[GeneratedOption(label="Go north"), GeneratedOption(label="Stay here")],
+        character=CharacterState(name="Hero"),
+        ascii_art=art,
+    )
+    engine = StoryEngine(repo, FakeGenerator([page1]))
+    config = CyaConfig(base_url="http://test.local/v1")
+    art_app = AdventureApp(config, repo, engine)
+
+    async with art_app.run_test() as pilot:
+        await _start_story_via_ui(pilot, "A quest.")
+        body = _story_body(art_app)
+        assert "You stand at a crossroads." in body
+        assert art in body
+        # Art appears after the body text, not before it
+        assert body.index(art) > body.index("You stand at a crossroads.")
+
+
+@pytest.mark.asyncio
 async def test_ending_replay(app: AdventureApp, faker: FakeGenerator):
     """Reach ending → 'The End' shown; press ending 1 → page-1 body."""
     async with app.run_test() as pilot:

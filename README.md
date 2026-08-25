@@ -1,9 +1,9 @@
 # Choose Your Adventure
 
 A terminal AI choose-your-own-adventure game. You provide a premise, and an
-LLM acts as the Game Master, writing vivid second-person prose and branching
-choices. Every choice grows the story; every page is saved so you can replay
-or continue later.
+LLM acts as the Game Master, writing vivid second-person prose, branching
+choices, and ASCII art for each scene. Every choice grows the story; every
+page is saved so you can replay or continue later.
 
 ## Prerequisites
 

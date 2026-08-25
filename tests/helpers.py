@@ -52,4 +52,5 @@ def mk_page(**kw: Any) -> GeneratedPage:
         is_ending=kw.get("is_ending", False),
         options=[GeneratedOption(label=o) for o in kw.get("options", [])],
         character=kw.get("character", CharacterState(name="Hero")),
+        ascii_art=kw.get("ascii_art", ""),
     )

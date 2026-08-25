@@ -236,8 +236,10 @@ class StoryScreen(Screen):
             f"{self._page['title']} — Page {self._page['seq']}"
         )
 
-        # Update story pane with body
+        # Update story pane with body + ascii art underneath
         body_text = f"{self._page['title']}\n\n{self._page['body']}"
+        if self._page.get("ascii_art"):
+            body_text += f"\n\n{self._page['ascii_art']}"
         if self._page["is_ending"]:
             body_text += "\n\n— The End —"
         self.query_one("#story-pane", Static).update(body_text)

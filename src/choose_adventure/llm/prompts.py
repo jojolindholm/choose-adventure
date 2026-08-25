@@ -11,7 +11,8 @@ SYSTEM_PROMPT = (
     '  "character": {\n'
     '    "name": string, "role": string, "location": string, "condition": string,\n'
     '    "traits": [string], "inventory": [string]\n'
-    "  }\n"
+    "  },\n"
+    '  "ascii_art": string             // 8-20 lines of ASCII line-art depicting the scene (monochrome, no color codes)\n'
     "}\n"
     "Rules:\n"
     "- Stay strictly consistent with everything in the story so far: names, places, items, injuries, promises, consequences.\n"

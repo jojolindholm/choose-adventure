@@ -75,12 +75,13 @@ class StoryRepository:
         body: str,
         is_ending: bool,
         parent_page_id: int | None,
+        ascii_art: str = "",
     ) -> dict:
         """Create a page and return it as a dict."""
         with closing(self._open()) as conn:
             cursor = conn.execute(
-                "INSERT INTO pages (story_id, seq, title, body, is_ending, parent_page_id) VALUES (?, ?, ?, ?, ?, ?)",
-                (story_id, seq, title, body, 1 if is_ending else 0, parent_page_id),
+                "INSERT INTO pages (story_id, seq, title, body, is_ending, parent_page_id, ascii_art) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (story_id, seq, title, body, 1 if is_ending else 0, parent_page_id, ascii_art),
             )
             page_id = cursor.lastrowid
             conn.commit()
@@ -92,6 +93,7 @@ class StoryRepository:
                 "body": body,
                 "is_ending": is_ending,
                 "parent_page_id": parent_page_id,
+                "ascii_art": ascii_art,
             }
 
     def create_options(self, page_id: int, labels: list[str]) -> list[dict]:
@@ -303,7 +305,7 @@ class StoryRepository:
                 seq = (row[0] if row and row[0] is not None else 0) + 1
 
                 cursor = conn.execute(
-                    "INSERT INTO pages (story_id, seq, title, body, is_ending, parent_page_id) VALUES (?, ?, ?, ?, ?, ?)",
+                    "INSERT INTO pages (story_id, seq, title, body, is_ending, parent_page_id, ascii_art) VALUES (?, ?, ?, ?, ?, ?, ?)",
                     (
                         story_id,
                         seq,
@@ -311,6 +313,7 @@ class StoryRepository:
                         generated.page_text,
                         1 if generated.is_ending else 0,
                         parent_page_id,
+                        generated.ascii_art,
                     ),
                 )
                 new_page_id = cursor.lastrowid
@@ -359,6 +362,7 @@ class StoryRepository:
                     "body": generated.page_text,
                     "is_ending": generated.is_ending,
                     "parent_page_id": parent_page_id,
+                    "ascii_art": generated.ascii_art,
                 }
 
             except Exception:

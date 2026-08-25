@@ -33,6 +33,7 @@ class GeneratedPage(BaseModel):
     is_ending: bool = False
     options: list[GeneratedOption] = []
     character: CharacterState
+    ascii_art: str = ""
 
     @model_validator(mode="after")
     def validate_options(self) -> GeneratedPage:

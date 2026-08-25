@@ -39,7 +39,7 @@ class StoryEngine:
 
         story = self._repo.create_story(premise, tone)
         page = self._repo.create_page(
-            story["id"], 1, gen.page_title, gen.page_text, gen.is_ending, None
+            story["id"], 1, gen.page_title, gen.page_text, gen.is_ending, None, gen.ascii_art
         )
         self._repo.create_options(page["id"], [o.label for o in gen.options])
         self._repo.save_character(page["id"], gen.character)

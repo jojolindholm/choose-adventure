@@ -74,6 +74,25 @@ def test_start_stores_page_with_options(repo, faker):
     assert story["last_page_id"] == page["id"]
 
 
+def test_start_stores_ascii_art(repo):
+    """start → generated ascii_art is persisted on page 1."""
+    art_page = GeneratedPage(
+        page_title="The Beginning",
+        page_text="You stand at a crossroads.",
+        is_ending=False,
+        options=[GeneratedOption(label="Go north"), GeneratedOption(label="Stay here")],
+        character=CharacterState(name="Hero"),
+        ascii_art="  /\\\n /  \\\n/____\\",
+    )
+    engine = StoryEngine(repo, FakeGenerator([art_page]))
+    page = asyncio.run(engine.start_story("A quest.", "epic"))
+
+    assert page["ascii_art"] == "  /\\\n /  \\\n/____\\"
+    stored = repo.get_page(page["id"])
+    assert stored is not None
+    assert stored["ascii_art"] == "  /\\\n /  \\\n/____\\"
+
+
 def test_choose_generates_and_links(repo, faker):
     """choose page1.opt1 → page 2 (parent page1, option linked, merged character stored)."""
     engine = StoryEngine(repo, faker)

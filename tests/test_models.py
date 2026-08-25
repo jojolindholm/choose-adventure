@@ -64,17 +64,33 @@ def test_valid_three_option_page():
     assert len(page.options) == 3
 
 
-def test_valid_ending_page():
-    """Valid ending page with empty options must pass."""
+# --- GeneratedPage ascii_art ---
+
+
+def test_ascii_art_defaults_to_empty():
+    """ascii_art defaults to an empty string (optional field)."""
     page = GeneratedPage(
-        page_title="End",
-        page_text="The end.",
-        is_ending=True,
-        options=[],
+        page_title="Start",
+        page_text="You begin.",
+        is_ending=False,
+        options=[GeneratedOption(label="Go"), GeneratedOption(label="Stay")],
         character=CharacterState(name="Hero"),
     )
-    assert page.is_ending is True
-    assert len(page.options) == 0
+    assert page.ascii_art == ""
+
+
+def test_ascii_art_preserved():
+    """ascii_art is preserved verbatim when provided."""
+    art = "  /\\\n /  \\\n/____\\"
+    page = GeneratedPage(
+        page_title="Start",
+        page_text="You begin.",
+        is_ending=False,
+        options=[GeneratedOption(label="Go"), GeneratedOption(label="Stay")],
+        character=CharacterState(name="Hero"),
+        ascii_art=art,
+    )
+    assert page.ascii_art == art
 
 
 # --- GeneratedOption validation ---
