@@ -7,6 +7,8 @@ Marked `integration` so it is excluded from the default `pytest -q` run
 
 from __future__ import annotations
 
+import argparse
+
 import pytest
 
 from choose_adventure.config import CyaConfig
@@ -20,7 +22,14 @@ from choose_adventure.story.engine import StoryEngine
 @pytest.mark.asyncio
 async def test_live_start_story(tmp_path) -> None:
     """Generate page 1 against the real endpoint and assert it was stored."""
-    config = CyaConfig()  # defaults: http://llm.courtdata.se/v1, huihui-qwen3.8-27b-abliterated
+    # Build config the same way main.py does: CYA_* env vars override defaults.
+    ns = argparse.Namespace(
+        base_url="http://llm.courtdata.se/v1",
+        model="huihui-qwen3.8-27b-abliterated",
+        api_key="",
+        db="~/.local/share/choose-adventure/stories.db",
+    )
+    config = CyaConfig.from_args(ns)
     db_path = tmp_path / "stories.db"
     repo = StoryRepository(db_path)
     llm = LLMClient(config)
