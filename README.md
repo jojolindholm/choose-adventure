@@ -98,19 +98,10 @@ export CYA_DATA_DIR=./data        # where per-player .db files go (default ./dat
 uv run saga-server                # listens on 0.0.0.0:8787
 ```
 
-### Connect a thin client
-
-```sh
-uv run saga-client --server http://localhost:8787 --token "$CYA_SERVER_TOKEN" --player alice
-```
-
-Env vars `CYA_SERVER_URL`, `CYA_SERVER_TOKEN`, `CYA_PLAYER` provide the same
-defaults; a machine-local `~/.config/choose-adventure/client.env`
-(`KEY=value` lines) is read when the env vars are unset, so `saga-client`
-works with no arguments on the machine where the server runs. Each player
-gets their own stories; a shared secret blocks stray connections. The client
-is the same Textual UI as the local app, talking to the server instead of
-the local engine.
+The server on this machine is also exposed publicly at
+`https://saga.johanlindholm.com` (Caddy reverse proxy, Let's Encrypt cert,
+auto-renewed). Play from any machine with:
+`uv run saga-client --server https://saga.johanlindholm.com --token "$CYA_SERVER_TOKEN" --player <name>`.
 
 ## Development
 
