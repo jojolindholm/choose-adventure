@@ -104,40 +104,31 @@ uv run saga-server                # listens on 0.0.0.0:8787
 
 ### Connect a thin client
 
+`--server` defaults to the public server (`https://saga.johanlindholm.com`);
+on this machine it is overridden to `http://localhost:8787` via
+`~/.config/choose-adventure/client.env`. The token is always required —
+pass `--token`, or set `CYA_SERVER_TOKEN` / add it to `client.env`:
+
 ```sh
-uv run saga --server http://localhost:8787 --token "$CYA_SERVER_TOKEN" --player alice
+saga --token "$CYA_SERVER_TOKEN" --player alice
 ```
 
-Env vars `CYA_SERVER_URL`, `CYA_SERVER_TOKEN`, `CYA_PLAYER` provide the same
-defaults; a machine-local `~/.config/choose-adventure/client.env`
-(`KEY=value` lines) is read when the env vars are unset, so `saga` works with
-no arguments on the machine where the server runs. Each player gets their own
-stories; a shared secret blocks stray connections. The client is the same
-Textual UI as the local app, talking to the server instead of the local engine.
-
-The server on this machine is also exposed publicly at
-`https://saga.johanlindholm.com` (Caddy reverse proxy, Let's Encrypt cert,
-auto-renewed). Play from any machine with:
-`uv run saga --server https://saga.johanlindholm.com --token "$CYA_SERVER_TOKEN" --player <name>`.
+`CYA_PLAYER` defaults to your username. Each player gets their own stories;
+the shared secret blocks stray connections. The client is the same Textual UI
+as the local app, talking to the server instead of the local engine.
 
 ### Install for players
 
-`uv` is the only prerequisite. From the published package:
-
-```sh
-uv tool install saga-adventure    # installs the `saga` client binary
-saga --server https://saga.johanlindholm.com --token "$CYA_SERVER_TOKEN" --player <name>
-```
-
-From a git checkout instead:
+`uv` is the only prerequisite:
 
 ```sh
 uv tool install git+https://github.com/jojolindholm/choose-adventure
-saga --server https://saga.johanlindholm.com --token "$CYA_SERVER_TOKEN" --player <name>
+saga --token "$CYA_SERVER_TOKEN" --player <name>   # server URL already defaults
 ```
 
-`pipx install saga-adventure` works too. Players only need the client — the
-server (engine, LLM, databases) stays on this machine.
+`--server` is baked in; only the token (and optionally `--player`) need
+supplying. `pipx install` from the repo works too. Players only need the
+client — the server (engine, LLM, databases) stays on this machine.
 
 ## Development
 

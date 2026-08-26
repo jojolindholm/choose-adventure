@@ -11,7 +11,9 @@ from choose_adventure.client.api import RemoteStoryService
 from choose_adventure.config import CyaConfig
 from choose_adventure.ui.app import AdventureApp
 
-DEFAULT_SERVER_URL = "http://localhost:8787"
+# Public server. Local setups (or anyone who prefers) override via the
+# client.env defaults file or CYA_SERVER_URL / --server.
+DEFAULT_SERVER_URL = "https://saga.johanlindholm.com"
 
 
 def _load_defaults() -> dict[str, str]:
