@@ -132,7 +132,7 @@ saga --server https://saga.johanlindholm.com --token "$CYA_SERVER_TOKEN" --playe
 From a git checkout instead:
 
 ```sh
-uv tool install git+https://github.com/johanlindholm/choose-adventure
+uv tool install git+https://github.com/jojolindholm/choose-adventure
 saga --server https://saga.johanlindholm.com --token "$CYA_SERVER_TOKEN" --player <name>
 ```
 
