@@ -93,6 +93,31 @@ def test_ascii_art_preserved():
     assert page.ascii_art == art
 
 
+def test_story_name_defaults_to_empty():
+    """story_name defaults to an empty string (optional field)."""
+    page = GeneratedPage(
+        page_title="Start",
+        page_text="You begin.",
+        is_ending=False,
+        options=[GeneratedOption(label="Go"), GeneratedOption(label="Stay")],
+        character=CharacterState(name="Hero"),
+    )
+    assert page.story_name == ""
+
+
+def test_story_name_preserved():
+    """story_name is preserved verbatim when provided."""
+    page = GeneratedPage(
+        page_title="Start",
+        page_text="You begin.",
+        is_ending=False,
+        options=[GeneratedOption(label="Go"), GeneratedOption(label="Stay")],
+        character=CharacterState(name="Hero"),
+        story_name="The Empty Lighthouse",
+    )
+    assert page.story_name == "The Empty Lighthouse"
+
+
 # --- GeneratedOption validation ---
 
 

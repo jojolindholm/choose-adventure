@@ -1,9 +1,9 @@
-# Choose Your Adventure
+# Saga
 
 A terminal AI choose-your-own-adventure game. You provide a premise, and an
 LLM acts as the Game Master, writing vivid second-person prose, branching
-choices, and ASCII art for each scene. Every choice grows the story; every
-page is saved so you can replay or continue later.
+choices, ASCII art, and a title for each story. Every choice grows the story;
+every page is saved so you can replay or continue later.
 
 ## Prerequisites
 
@@ -14,14 +14,14 @@ page is saved so you can replay or continue later.
 
 ```sh
 uv sync
-uv run cya
+uv run saga
 ```
 
 ### Install globally (run from any directory)
 
 ```sh
 uv tool install .          # or: uv build && uv tool install ./dist/*.whl
-cya                        # now on ~/.local/bin/cya, works anywhere
+saga                       # now on ~/.local/bin/saga, works anywhere
 ```
 
 ## Flags
@@ -37,15 +37,15 @@ cya                        # now on ~/.local/bin/cya, works anywhere
 
 **Free local endpoint (default, no key needed):**
 ```sh
-cya    # http://llm.courtdata.se/v1, huihui-qwen3.8-27b-abliterated
+saga    # http://llm.courtdata.se/v1, huihui-qwen3.8-27b-abliterated
 ```
 
-**OpenRouter (e.g. fast GLM-4.7-Flash, needs an API key):** set these env vars (or in `~/.zshrc`), then run `cya`:
+**OpenRouter (e.g. fast GLM-4.7-Flash, needs an API key):** set these env vars (or in `~/.zshrc`), then run `saga`:
 ```sh
 export CYA_BASE_URL="https://openrouter.ai/api/v1"
 export CYA_MODEL="z-ai/glm-4.7-flash"
 export CYA_API_KEY="sk-or-..."     # app-only key; stays out of this repo
-cya
+saga
 ```
 Environment variables (`CYA_BASE_URL`, `CYA_MODEL`, `CYA_API_KEY`, `CYA_DB`) provide defaults; explicit `--model` / `--base-url` / `--api-key` / `--db` CLI flags take precedence. Keep `CYA_API_KEY` in your shell profile, not in source control.
 
@@ -63,8 +63,12 @@ Environment variables (`CYA_BASE_URL`, `CYA_MODEL`, `CYA_API_KEY`, `CYA_DB`) pro
 ## Saves
 
 Stories are stored in a SQLite database at `~/.local/share/choose-adventure/stories.db`
-(override with `--db`). Each page, its options, and the character state are
-persisted as you play.
+(override with `--db`). Each page, its options, the character state, and the
+generated story name are persisted as you play.
+
+Replay reads the stored story from disk — already-generated pages are shown
+exactly as written and are never regenerated. Choosing an option that has not
+been explored yet generates a new page and grows the story from there.
 
 ## Server + thin client (multiplayer)
 
@@ -91,18 +95,18 @@ and databases are never exposed to clients — only the API port is public.
 ```sh
 export CYA_SERVER_TOKEN="pick-a-shared-secret"
 export CYA_DATA_DIR=./data        # where per-player .db files go (default ./data)
-uv run cya-server                 # listens on 0.0.0.0:8787
+uv run saga-server                # listens on 0.0.0.0:8787
 ```
 
 ### Connect a thin client
 
 ```sh
-uv run cya-client --server http://localhost:8787 --token "$CYA_SERVER_TOKEN" --player alice
+uv run saga-client --server http://localhost:8787 --token "$CYA_SERVER_TOKEN" --player alice
 ```
 
 Env vars `CYA_SERVER_URL`, `CYA_SERVER_TOKEN`, `CYA_PLAYER` provide the same
 defaults; a machine-local `~/.config/choose-adventure/client.env`
-(`KEY=value` lines) is read when the env vars are unset, so `cya-client`
+(`KEY=value` lines) is read when the env vars are unset, so `saga-client`
 works with no arguments on the machine where the server runs. Each player
 gets their own stories; a shared secret blocks stray connections. The client
 is the same Textual UI as the local app, talking to the server instead of

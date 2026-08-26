@@ -37,7 +37,7 @@ class StoryEngine:
         ctx = GenerationContext(premise=premise, tone=tone, character=None, history=[], choice=None)
         gen = await self._generator.next_page(ctx)
 
-        story = self._repo.create_story(premise, tone)
+        story = self._repo.create_story(premise, tone, gen.story_name)
         page = self._repo.create_page(
             story["id"], 1, gen.page_title, gen.page_text, gen.is_ending, None, gen.ascii_art
         )

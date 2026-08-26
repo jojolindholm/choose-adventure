@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 
-SCHEMA_VERSION = 2
+SCHEMA_VERSION = 3
 
 SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS meta (
@@ -14,7 +14,8 @@ CREATE TABLE IF NOT EXISTS stories (
     premise TEXT NOT NULL,
     tone TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL,
-    last_page_id INTEGER
+    last_page_id INTEGER,
+    name TEXT NOT NULL DEFAULT ''
 );
 
 CREATE TABLE IF NOT EXISTS pages (
@@ -65,6 +66,10 @@ def ensure_schema(conn: sqlite3.Connection) -> None:
     cols = {row[1] for row in conn.execute("PRAGMA table_info(pages)")}
     if "ascii_art" not in cols:
         conn.execute("ALTER TABLE pages ADD COLUMN ascii_art TEXT NOT NULL DEFAULT ''")
+    # v2 -> v3 adds the generated story name to stories.
+    story_cols = {row[1] for row in conn.execute("PRAGMA table_info(stories)")}
+    if "name" not in story_cols:
+        conn.execute("ALTER TABLE stories ADD COLUMN name TEXT NOT NULL DEFAULT ''")
     # Set/verify schema version
     cursor = conn.execute("SELECT value FROM meta WHERE key = 'schema_version'")
     row = cursor.fetchone()

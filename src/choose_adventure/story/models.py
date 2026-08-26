@@ -38,6 +38,7 @@ class GeneratedPage(BaseModel):
     options: list[GeneratedOption] = []
     character: CharacterState
     ascii_art: str = ""
+    story_name: str = ""
 
     @model_validator(mode="after")
     def validate_options(self) -> GeneratedPage:

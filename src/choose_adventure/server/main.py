@@ -1,4 +1,4 @@
-"""Entry point for `cya-server`: run the FastAPI app under uvicorn."""
+"""Entry point for `saga-server`: run the FastAPI app under uvicorn."""
 
 from __future__ import annotations
 

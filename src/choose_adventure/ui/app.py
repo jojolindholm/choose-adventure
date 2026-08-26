@@ -23,6 +23,8 @@ class StoryRepoProtocol(Protocol):
 
     def latest_story(self) -> dict | None: ...
 
+    def get_story(self, story_id: int) -> dict | None: ...
+
     def list_stories(self) -> list[StorySummary]: ...
 
     def get_page(self, page_id: int) -> dict | None: ...
@@ -109,7 +111,7 @@ class MenuScreen(Screen):
 
     def compose(self) -> ComposeResult:
         yield Header()
-        yield Container(Static("CHOOSE YOUR ADVENTURE", id="title"), id="menu-container")
+        yield Container(Static("SAGA", id="title"), id="menu-container")
         yield Footer()
 
     def on_mount(self) -> None:
@@ -120,9 +122,10 @@ class MenuScreen(Screen):
         rows: list[Static] = [Static("1) New story", id="row-new")]
         latest = self._repo.latest_story()
         if latest:
+            label = latest.get("name") or latest.get("premise") or "Story"
             rows.append(
                 Static(
-                    f'2) Continue "{latest.get("premise", "Story")}" (page {latest["last_page_id"] or "?"})',
+                    f'2) Continue "{label}" (page {latest["last_page_id"] or "?"})',
                     id="row-continue",
                 )
             )
@@ -231,6 +234,7 @@ class StoryScreen(Screen):
         self._options: list[dict] = []
         self._busy = False
         self._pending: tuple[dict, dict] | None = None
+        self._story_name = ""
 
     def compose(self) -> ComposeResult:
         yield Header()
@@ -247,6 +251,8 @@ class StoryScreen(Screen):
         yield Footer()
 
     def on_mount(self) -> None:
+        story = self.app.repo.get_story(self._story_id) or {}
+        self._story_name = story.get("name", "")
         self._load_page()
 
     def _load_page(self) -> None:
@@ -256,9 +262,9 @@ class StoryScreen(Screen):
             self.notify(f"Page {self._page_id} not found")
             return
 
-        # Update topbar
+        # Update topbar: story name (or page title for old stories) + page number
         self.query_one("#topbar", Static).update(
-            f"{self._page['title']} — Page {self._page['seq']}"
+            f"{self._story_name or self._page['title']} — Page {self._page['seq']}"
         )
 
         # Update story pane with body + ascii art underneath
@@ -449,7 +455,8 @@ class ReplayListScreen(Screen):
         yield Header()
         with Container(id="replay-container"):
             for i, story in enumerate(self._stories, 1):
-                yield Static(f'{i}. {story.title} — "{story.premise}"', id=f"replay-{i}")
+                label = story.name or story.title
+                yield Static(f'{i}. {label} — "{story.premise}"', id=f"replay-{i}")
         yield Footer()
 
     def action_replay_1(self) -> None:
@@ -496,6 +503,9 @@ class ReplayListScreen(Screen):
 
 class AdventureApp(App):
     """Main application."""
+
+    TITLE = "Saga"
+    SUB_TITLE = "Choose your adventure"
 
     CSS = """
     Screen {
@@ -612,7 +622,7 @@ def main() -> None:
     """Entry point for the `cya` console script."""
     import argparse
 
-    parser = argparse.ArgumentParser(description="Choose Your Adventure")
+    parser = argparse.ArgumentParser(description="Saga")
     parser.add_argument("--model", default="huihui-qwen3.8-27b-abliterated")
     parser.add_argument("--base-url", default="http://llm.courtdata.se/v1")
     parser.add_argument("--api-key", default="")

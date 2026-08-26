@@ -33,6 +33,7 @@ def _pages() -> list[GeneratedPage | Exception]:
             options=[GeneratedOption(label="Go north"), GeneratedOption(label="Stay here")],
             character=CharacterState(name="Hero", role="Adventurer"),
             ascii_art=ART,
+            story_name="The Ember Road",
         ),
         GeneratedPage(
             page_title="North Road",
@@ -118,6 +119,10 @@ async def test_start_story_and_reads(remote: RemoteStoryService) -> None:
     assert stories[0].title == "The Beginning"
 
     assert remote.first_page_id(page["story_id"]) == page["id"]
+    # Generated story name round-trips through the API.
+    fetched = remote.get_story(page["story_id"])
+    assert fetched["name"] == "The Ember Road"
+    assert stories[0].name == "The Ember Road"
 
 
 @pytest.mark.asyncio

@@ -15,13 +15,20 @@ class StorySummary:
     """Lightweight summary for listing stories."""
 
     def __init__(
-        self, id: int, title: str, premise: str, created_at: str, last_page_id: int | None
+        self,
+        id: int,
+        title: str,
+        premise: str,
+        created_at: str,
+        last_page_id: int | None,
+        name: str = "",
     ):
         self.id = id
         self.title = title
         self.premise = premise
         self.created_at = created_at
         self.last_page_id = last_page_id
+        self.name = name
 
 
 class PathStep:
@@ -47,15 +54,15 @@ class StoryRepository:
         ensure_schema(conn)
         return conn
 
-    def create_story(self, premise: str, tone: str = "") -> dict:
+    def create_story(self, premise: str, tone: str = "", name: str = "") -> dict:
         """Create a new story and return it as a dict."""
         import datetime
 
         with closing(self._open()) as conn:
             now = datetime.datetime.now(datetime.UTC).isoformat()
             cursor = conn.execute(
-                "INSERT INTO stories (premise, tone, created_at) VALUES (?, ?, ?)",
-                (premise, tone, now),
+                "INSERT INTO stories (premise, tone, created_at, name) VALUES (?, ?, ?, ?)",
+                (premise, tone, now, name),
             )
             story_id = cursor.lastrowid
             conn.commit()
@@ -65,6 +72,7 @@ class StoryRepository:
                 "tone": tone,
                 "created_at": now,
                 "last_page_id": None,
+                "name": name,
             }
 
     def create_page(
@@ -220,10 +228,11 @@ class StoryRepository:
             return dict(row)
 
     def list_stories(self) -> list[StorySummary]:
-        """List all stories with their page-1 title."""
+        """List all stories with their page-1 title and generated name."""
         with closing(self._open()) as conn:
             cursor = conn.execute("""
-                SELECT s.id, p.title AS story_title, s.premise, s.created_at, s.last_page_id
+                SELECT s.id, p.title AS story_title, s.premise, s.created_at, s.last_page_id,
+                       s.name
                 FROM stories s
                 LEFT JOIN pages p ON s.id = p.story_id AND p.seq = 1
                 ORDER BY s.id DESC
@@ -238,6 +247,7 @@ class StoryRepository:
                         premise=data["premise"],
                         created_at=data["created_at"],
                         last_page_id=data["last_page_id"],
+                        name=data["name"],
                     )
                 )
             return results

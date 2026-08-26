@@ -4,7 +4,7 @@ import sys
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Choose Your Adventure")
+    parser = argparse.ArgumentParser(description="Saga")
     parser.add_argument("--model", default="huihui-qwen3.8-27b-abliterated", help="LLM model name")
     parser.add_argument("--base-url", default="http://llm.courtdata.se/v1", help="LLM API base URL")
     parser.add_argument("--api-key", default="", help="LLM API key (empty = free no-auth endpoint)")

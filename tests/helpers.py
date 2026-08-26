@@ -13,17 +13,19 @@ def make_repo(tmp_path: Path) -> StoryRepository:
 def seed_story(
     repo: StoryRepository,
     pages: list[tuple[str, str, list[str], CharacterState, bool]],
+    name: str = "",
 ) -> dict:
     """Seed a story with pre-built pages.
 
     Args:
         repo: The repository to seed.
         pages: List of (title, body, labels, character, is_ending) tuples.
+        name: Optional generated story name (defaults to empty).
 
     Returns:
         The created story dict.
     """
-    story = repo.create_story("Seeded", "")
+    story = repo.create_story("Seeded", "", name)
 
     prev_page_id = None
     for i, (title, body, labels, character, is_ending) in enumerate(pages, 1):

@@ -48,6 +48,9 @@ class RemoteStoryService:
         resp = self._request("GET", "/api/stories/latest")
         return resp.json()
 
+    def get_story(self, story_id: int) -> dict:
+        return self._request("GET", f"/api/stories/{story_id}").json()
+
     def list_stories(self) -> list[StorySummary]:
         data = self._request("GET", "/api/stories").json()
         return [StorySummary(**item) for item in data]

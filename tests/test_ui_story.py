@@ -113,6 +113,27 @@ async def test_ascii_art_rendered_under_body(repo: StoryRepository):
 
 
 @pytest.mark.asyncio
+async def test_topbar_shows_story_name(repo: StoryRepository):
+    """The generated story name appears at the top of the story screen."""
+    named_page = GeneratedPage(
+        page_title="The Beginning",
+        page_text="You stand at a crossroads.",
+        is_ending=False,
+        options=[GeneratedOption(label="Go north"), GeneratedOption(label="Stay here")],
+        character=CharacterState(name="Hero"),
+        story_name="The Ember Road",
+    )
+    engine = StoryEngine(repo, FakeGenerator([named_page]))
+    app = AdventureApp(CyaConfig(base_url="http://test.local/v1"), repo, engine)
+
+    async with app.run_test() as pilot:
+        await _start_story_via_ui(pilot, "A quest.")
+        topbar = str(app.screen.query_one("#topbar").render())
+        assert "The Ember Road" in topbar
+        assert "Page 1" in topbar
+
+
+@pytest.mark.asyncio
 async def test_ending_replay(app: AdventureApp, faker: FakeGenerator):
     """Reach ending → 'The End' shown; press ending 1 → page-1 body."""
     async with app.run_test() as pilot:

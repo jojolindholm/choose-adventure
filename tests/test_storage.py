@@ -27,6 +27,79 @@ def test_create_story(repo: StoryRepository):
     assert story["last_page_id"] is None
 
 
+def test_create_story_with_name(repo: StoryRepository):
+    """create_story stores the generated story name."""
+    story = repo.create_story("A quest.", "epic", name="The Ember Road")
+    assert story["name"] == "The Ember Road"
+    loaded = repo.get_story(story["id"])
+    assert loaded is not None
+    assert loaded["name"] == "The Ember Road"
+
+
+def test_list_stories_includes_name(repo: StoryRepository):
+    """list_stories exposes the story name (empty for unnamed stories)."""
+    repo.create_story("A quest.", "epic", name="The Ember Road")
+    repo.create_story("Plain", "")
+    stories = repo.list_stories()
+    assert len(stories) == 2
+    by_id = {s.id: s for s in stories}
+    named = [s for s in stories if s.name]
+    assert len(named) == 1
+    assert named[0].name == "The Ember Road"
+    assert by_id[named[0].id].premise == "A quest."
+
+
+def test_v2_db_migrates_story_name(tmp_db: Path):
+    """A v2 database gains stories.name on ensure_schema, existing rows default ''."""
+    conn = sqlite3.connect(str(tmp_db))
+    conn.executescript(
+        """
+        CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
+        INSERT INTO meta (key, value) VALUES ('schema_version', '2');
+        CREATE TABLE stories (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            premise TEXT NOT NULL, tone TEXT NOT NULL DEFAULT '',
+            created_at TEXT NOT NULL, last_page_id INTEGER
+        );
+        CREATE TABLE pages (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            story_id INTEGER NOT NULL REFERENCES stories(id),
+            seq INTEGER NOT NULL, title TEXT NOT NULL, body TEXT NOT NULL,
+            is_ending INTEGER NOT NULL DEFAULT 0,
+            parent_page_id INTEGER REFERENCES pages(id),
+            ascii_art TEXT NOT NULL DEFAULT '',
+            UNIQUE(story_id, seq)
+        );
+        CREATE TABLE options (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            page_id INTEGER NOT NULL REFERENCES pages(id),
+            seq INTEGER NOT NULL, label TEXT NOT NULL,
+            target_page_id INTEGER REFERENCES pages(id),
+            UNIQUE(page_id, seq)
+        );
+        CREATE TABLE character_states (
+            page_id INTEGER PRIMARY KEY REFERENCES pages(id),
+            name TEXT NOT NULL, role TEXT NOT NULL DEFAULT '',
+            location TEXT NOT NULL DEFAULT '', condition TEXT NOT NULL DEFAULT '',
+            traits TEXT NOT NULL DEFAULT '[]', inventory TEXT NOT NULL DEFAULT '[]'
+        );
+        INSERT INTO stories (id, premise, created_at) VALUES (1, 'old', 'now');
+        """
+    )
+    conn.commit()
+    conn.close()
+
+    repo = StoryRepository(tmp_db)
+    story = repo.get_story(1)
+    assert story is not None
+    assert story["name"] == ""
+    # New stories written after migration accept a name.
+    new_story = repo.create_story("New", "", name="Fresh Name")
+    fresh = repo.get_story(new_story["id"])
+    assert fresh is not None
+    assert fresh["name"] == "Fresh Name"
+
+
 def test_ascii_art_roundtrip(repo: StoryRepository):
     """create_page stores ascii_art; get_page returns it verbatim."""
     story = repo.create_story("Test", "")

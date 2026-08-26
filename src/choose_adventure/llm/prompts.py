@@ -5,6 +5,7 @@ SYSTEM_PROMPT = (
     "Schema:\n"
     "{\n"
     '  "page_title": string,           // 1-4 words\n'
+    '  "story_name": string,           // 1-4 words, the overall story title; keep identical on every page\n'
     '  "page_text": string,            // 100-250 words, second person, present tense\n'
     '  "is_ending": boolean,           // true only when the story reaches a definite end\n'
     '  "options": [{"label": string}], // 2-4 choices, each max 8 words, must be [] when is_ending is true\n'

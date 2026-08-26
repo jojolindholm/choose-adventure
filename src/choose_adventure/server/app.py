@@ -112,7 +112,7 @@ def create_app(
 
     state = AppState(data_dir, generator)
 
-    app = FastAPI(title="Choose Your Adventure Server")
+    app = FastAPI(title="Saga Server")
     app.state.cya = state
     app.state.cya_token = token
 
@@ -135,6 +135,7 @@ def create_app(
                 "premise": s.premise,
                 "created_at": s.created_at,
                 "last_page_id": s.last_page_id,
+                "name": s.name,
             }
             for s in repo.list_stories()
         ]
@@ -142,6 +143,13 @@ def create_app(
     @app.get("/api/stories/latest")
     def latest_story(player: _Player = Depends(_auth_player)) -> dict | None:
         return state.repo_for(player).latest_story()
+
+    @app.get("/api/stories/{story_id}")
+    def get_story(story_id: int, player: _Player = Depends(_auth_player)) -> dict:
+        story = state.repo_for(player).get_story(story_id)
+        if story is None:
+            raise HTTPException(status_code=404, detail=f"story {story_id} not found")
+        return story
 
     @app.post("/api/stories", status_code=201)
     async def start_story(body: StartStoryRequest, player: _Player = Depends(_auth_player)) -> dict:

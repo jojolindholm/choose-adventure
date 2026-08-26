@@ -93,6 +93,24 @@ def test_start_stores_ascii_art(repo):
     assert stored["ascii_art"] == "  /\\\n /  \\\n/____\\"
 
 
+def test_start_stores_generated_story_name(repo):
+    """start → the generated story_name is persisted on the story."""
+    named_page = GeneratedPage(
+        page_title="The Beginning",
+        page_text="You stand at a crossroads.",
+        is_ending=False,
+        options=[GeneratedOption(label="Go north"), GeneratedOption(label="Stay here")],
+        character=CharacterState(name="Hero"),
+        story_name="The Ember Road",
+    )
+    engine = StoryEngine(repo, FakeGenerator([named_page]))
+    page = asyncio.run(engine.start_story("A quest.", "epic"))
+
+    story = repo.get_story(page["story_id"])
+    assert story is not None
+    assert story["name"] == "The Ember Road"
+
+
 def test_choose_generates_and_links(repo, faker):
     """choose page1.opt1 → page 2 (parent page1, option linked, merged character stored)."""
     engine = StoryEngine(repo, faker)

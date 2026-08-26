@@ -30,6 +30,7 @@ def _pages() -> list[GeneratedPage | Exception]:
         options=[GeneratedOption(label="Go north"), GeneratedOption(label="Stay here")],
         character=CharacterState(name="Hero", role="Adventurer"),
         ascii_art=ART,
+        story_name="The Ember Road",
     )
     page2 = GeneratedPage(
         page_title="North Road",
@@ -94,6 +95,20 @@ def test_choose_generates_linked_page(client: TestClient) -> None:
     # Option is now linked on the server.
     options_after = client.get(f"/api/pages/{page1['id']}/options", headers=_headers()).json()
     assert options_after[0]["target_page_id"] == page2["id"]
+
+
+def test_get_story_returns_generated_name(client: TestClient) -> None:
+    """The generated story name is stored and served on GET /api/stories/{id}."""
+    page1 = client.post("/api/stories", headers=_headers(), json={"premise": "A quest."}).json()
+
+    story = client.get(f"/api/stories/{page1['story_id']}", headers=_headers()).json()
+    assert story["name"] == "The Ember Road"
+
+    listed = client.get("/api/stories", headers=_headers()).json()
+    assert listed[0]["name"] == "The Ember Road"
+
+    missing = client.get("/api/stories/99999", headers=_headers())
+    assert missing.status_code == 404
 
 
 def test_get_page_character_and_first_page(client: TestClient) -> None:

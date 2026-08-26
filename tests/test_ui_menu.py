@@ -150,3 +150,19 @@ async def test_continue_shows_page2(app: AdventureApp, repo: StoryRepository):
         assert isinstance(app.screen, StoryScreen)
         body = str(app.screen.query_one("#story-pane").render())
         assert "You went north." in body
+
+
+@pytest.mark.asyncio
+async def test_continue_row_shows_story_name(app: AdventureApp, repo: StoryRepository):
+    """The menu Continue row shows the generated story name, not the premise."""
+    char = CharacterState(name="Hero")
+    seed_story(
+        repo,
+        [("Start", "You begin.", ["Go", "Stay"], char, False)],
+        name="The Ember Road",
+    )
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        texts = _menu_texts(app)
+        assert any("The Ember Road" in t for t in texts)
+        assert any("Continue" in t for t in texts)

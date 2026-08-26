@@ -16,9 +16,9 @@ dependencies = [
 ]
 
 [project.scripts]
-cya = "choose_adventure.main:main"
-cya-server = "choose_adventure.server.main:main"
-cya-client = "choose_adventure.client.main:main"
+saga = "choose_adventure.main:main"
+saga-server = "choose_adventure.server.main:main"
+saga-client = "choose_adventure.client.main:main"
 
 [dependency-groups]
 dev = [

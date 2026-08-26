@@ -1,4 +1,4 @@
-"""Entry point for `cya-client`: play against a remote `cya-server`."""
+"""Entry point for `saga-client`: play against a remote `saga-server`."""
 
 from __future__ import annotations
 
@@ -46,9 +46,7 @@ def _pick(flag_value: str, env_name: str, defaults: dict[str, str], fallback: st
 def main() -> int:
     defaults = _load_defaults()
 
-    parser = argparse.ArgumentParser(
-        description="Play Choose Your Adventure against a remote cya-server"
-    )
+    parser = argparse.ArgumentParser(description="Play Saga against a remote saga-server")
     parser.add_argument("--server", default="", help="server base URL (env CYA_SERVER_URL)")
     parser.add_argument("--token", default="", help="shared secret (env CYA_SERVER_TOKEN)")
     parser.add_argument("--player", default="", help="player name (env CYA_PLAYER)")
