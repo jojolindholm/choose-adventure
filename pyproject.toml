@@ -16,9 +16,11 @@ dependencies = [
 ]
 
 [project.scripts]
-saga = "choose_adventure.main:main"
+# `saga` is the thin client players run. `saga-local` is the single-user
+# local app (engine + LLM in-process) kept for development.
+saga = "choose_adventure.client.main:main"
+saga-local = "choose_adventure.main:main"
 saga-server = "choose_adventure.server.main:main"
-saga-client = "choose_adventure.client.main:main"
 
 [dependency-groups]
 dev = [

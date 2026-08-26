@@ -1,4 +1,4 @@
-"""Entry point for `saga-client`: play against a remote `saga-server`."""
+"""Entry point for `saga`: the thin client that plays against a `saga-server`."""
 
 from __future__ import annotations
 

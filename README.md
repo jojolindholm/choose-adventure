@@ -12,16 +12,20 @@ every page is saved so you can replay or continue later.
 
 ## Run
 
+The normal setup is a server on this machine and the `saga` client in each
+terminal (see "Server + thin client" below). For a quick single-user run with
+the engine and LLM in-process, use `saga-local`:
+
 ```sh
 uv sync
-uv run saga
+uv run saga-local
 ```
 
 ### Install globally (run from any directory)
 
 ```sh
-uv tool install .          # or: uv build && uv tool install ./dist/*.whl
-saga                       # now on ~/.local/bin/saga, works anywhere
+uv tool install .          # installs saga (client), saga-local, saga-server
+saga-local                 # single-user local mode; now on ~/.local/bin
 ```
 
 ## Flags
@@ -98,10 +102,42 @@ export CYA_DATA_DIR=./data        # where per-player .db files go (default ./dat
 uv run saga-server                # listens on 0.0.0.0:8787
 ```
 
+### Connect a thin client
+
+```sh
+uv run saga --server http://localhost:8787 --token "$CYA_SERVER_TOKEN" --player alice
+```
+
+Env vars `CYA_SERVER_URL`, `CYA_SERVER_TOKEN`, `CYA_PLAYER` provide the same
+defaults; a machine-local `~/.config/choose-adventure/client.env`
+(`KEY=value` lines) is read when the env vars are unset, so `saga` works with
+no arguments on the machine where the server runs. Each player gets their own
+stories; a shared secret blocks stray connections. The client is the same
+Textual UI as the local app, talking to the server instead of the local engine.
+
 The server on this machine is also exposed publicly at
 `https://saga.johanlindholm.com` (Caddy reverse proxy, Let's Encrypt cert,
 auto-renewed). Play from any machine with:
-`uv run saga-client --server https://saga.johanlindholm.com --token "$CYA_SERVER_TOKEN" --player <name>`.
+`uv run saga --server https://saga.johanlindholm.com --token "$CYA_SERVER_TOKEN" --player <name>`.
+
+### Install for players
+
+`uv` is the only prerequisite. From the published package:
+
+```sh
+uv tool install saga-adventure    # installs the `saga` client binary
+saga --server https://saga.johanlindholm.com --token "$CYA_SERVER_TOKEN" --player <name>
+```
+
+From a git checkout instead:
+
+```sh
+uv tool install git+https://github.com/johanlindholm/choose-adventure
+saga --server https://saga.johanlindholm.com --token "$CYA_SERVER_TOKEN" --player <name>
+```
+
+`pipx install saga-adventure` works too. Players only need the client — the
+server (engine, LLM, databases) stays on this machine.
 
 ## Development
 
