@@ -251,9 +251,23 @@ class StoryScreen(Screen):
         yield Footer()
 
     def on_mount(self) -> None:
-        story = self.app.repo.get_story(self._story_id) or {}
-        self._story_name = story.get("name", "")
+        self._load_story_name()
         self._load_page()
+
+    def _load_story_name(self) -> None:
+        """Resolve the story-level name for the topbar.
+
+        Prefers the generated story name; for stories created before that
+        feature, falls back to the first page's title (the story's identity),
+        never the current page's scene title.
+        """
+        story = self.app.repo.get_story(self._story_id) or {}
+        name = story.get("name") or ""
+        if not name:
+            first_id = self.app.repo.first_page_id(self._story_id)
+            first_page = self.app.repo.get_page(first_id) if first_id is not None else None
+            name = first_page["title"] if first_page else ""
+        self._story_name = name
 
     def _load_page(self) -> None:
         """Load the current page from the repository."""

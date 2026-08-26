@@ -12,6 +12,7 @@ from choose_adventure.ui.app import AdventureApp, ConfirmDialog, NewStoryScreen,
 from choose_adventure.ui.widgets import CharacterPanel
 
 from .fakes import FakeGenerator
+from .helpers import seed_story
 
 
 @pytest.fixture
@@ -131,6 +132,31 @@ async def test_topbar_shows_story_name(repo: StoryRepository):
         topbar = str(app.screen.query_one("#topbar").render())
         assert "The Ember Road" in topbar
         assert "Page 1" in topbar
+
+
+@pytest.mark.asyncio
+async def test_topbar_falls_back_to_first_page_title(repo: StoryRepository):
+    """Unnamed stories show the first page's title in the topbar, not the current page's."""
+    char = CharacterState(name="Hero")
+    seed_story(
+        repo,
+        [
+            ("The Awakening", "You wake in a strange city.", ["Go", "Stay"], char, False),
+            ("The Angel's Mark", "You follow the mark.", ["Continue", "Look"], char, False),
+        ],
+    )
+    engine = StoryEngine(repo, FakeGenerator([]))
+    app = AdventureApp(CyaConfig(base_url="http://test.local/v1"), repo, engine)
+
+    async with app.run_test() as pilot:
+        # Continue -> page 2 of the seeded story.
+        await pilot.pause()
+        await pilot.press("2")
+        await pilot.pause()
+        topbar = str(app.screen.query_one("#topbar").render())
+        assert "The Awakening" in topbar
+        assert "The Angel's Mark" not in topbar
+        assert "Page 2" in topbar
 
 
 @pytest.mark.asyncio
