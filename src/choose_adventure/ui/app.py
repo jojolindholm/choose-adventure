@@ -448,15 +448,17 @@ class ReplayListScreen(Screen):
 
     BINDINGS: ClassVar[list[BindingType]] = [
         Binding("escape", "menu", "Menu"),
-        Binding("1", "replay_1", "1"),
-        Binding("2", "replay_2", "2"),
-        Binding("3", "replay_3", "3"),
-        Binding("4", "replay_4", "4"),
-        Binding("5", "replay_5", "5"),
-        Binding("6", "replay_6", "6"),
-        Binding("7", "replay_7", "7"),
-        Binding("8", "replay_8", "8"),
-        Binding("9", "replay_9", "9"),
+        # The on-screen rows already show the numbers; keep them out of the
+        # footer to avoid redundant "1 → 1, 2 → 2" noise.
+        Binding("1", "replay_1", "1", show=False),
+        Binding("2", "replay_2", "2", show=False),
+        Binding("3", "replay_3", "3", show=False),
+        Binding("4", "replay_4", "4", show=False),
+        Binding("5", "replay_5", "5", show=False),
+        Binding("6", "replay_6", "6", show=False),
+        Binding("7", "replay_7", "7", show=False),
+        Binding("8", "replay_8", "8", show=False),
+        Binding("9", "replay_9", "9", show=False),
     ]
 
     app: AdventureApp
