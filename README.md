@@ -119,16 +119,18 @@ as the local app, talking to the server instead of the local engine.
 
 ### Install for players
 
-`uv` is the only prerequisite:
+`uv` or `pipx` is the only prerequisite:
 
 ```sh
-uv tool install git+https://github.com/jojolindholm/choose-adventure
+uv tool install saga-adventure     # or: pipx install saga-adventure
 saga --token "$CYA_SERVER_TOKEN" --player <name>   # server URL already defaults
 ```
 
 `--server` is baked in; only the token (and optionally `--player`) need
-supplying. `pipx install` from the repo works too. Players only need the
-client — the server (engine, LLM, databases) stays on this machine.
+supplying. From a git checkout instead:
+`uv tool install git+https://github.com/jojolindholm/choose-adventure`.
+Players only need the client — the server (engine, LLM, databases) stays on
+this machine.
 
 ## Development
 
